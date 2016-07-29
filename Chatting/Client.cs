@@ -8,15 +8,16 @@ namespace Chatting
 {
     public class Client
     {
-        IPEndPoint Server;
-        Socket Socket;
-        IPAddress IP;
-        int Port;                                                                    
+        Message m = new Message();
+        IPEndPoint server;
+        Socket socket;
+        IPAddress ip;
+        int port;                                                                    
         public Client(int port)
         {
-            Port = port;
-            IP = GetServerIP(); 
-            ServerEP(IP, Port);
+            this.port = port;
+            ip = GetServerIP();
+            ServerEP(ip, this.port);
             Connection();
         }
         
@@ -24,7 +25,7 @@ namespace Chatting
         {
             try
             {
-                Server = new IPEndPoint(ip, port);
+                server = new IPEndPoint(ip, port);
             }
             catch (ArgumentNullException ane)
             {
@@ -41,8 +42,8 @@ namespace Chatting
         {
             try
             {
-                Socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                Socket.Connect(Server);
+                socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                socket.Connect(server);
             }
             catch (ArgumentNullException ane)
             {
@@ -50,13 +51,13 @@ namespace Chatting
             }
             catch (SocketException se)
             {
-                Socket.Close();
+                socket.Close();
                 //Console.WriteLine("SocketException : {0}", se.ToString());
                 Console.Write("Connecting Server  ");
                 
                 IPAddress ip = GetServerIP();
                 Console.WriteLine("{0} ...",ip);
-                ServerEP(ip, Port);
+                ServerEP(ip, port);
                 Connection();
             }
             catch (Exception e)
@@ -65,22 +66,26 @@ namespace Chatting
             }
         }
 
-        public void Send(MessageType type, string data)
+        public byte[] BodyStructToBytes(object obj)
+        {
+            return m.StructureToByte(obj);
+        }
+
+        public void Send(MessageType type, byte[] bytes)
         {
             try
             {
-                Message m = new Message();
-                byte[] arr = Encoding.UTF8.GetBytes(data);
 
-                Header head = new Header(type, arr.Length);
+                byte[] bodyBytes = bytes;
 
+                Header head = new Header(type,MessageState.REQUEST,bodyBytes.Length);
                 byte[] headBytes = m.StructureToByte(head);
-                int byteSent = Socket.Send(headBytes);
-                Console.WriteLine(byteSent);
 
-                byte[] bodyBytes = Encoding.UTF8.GetBytes(data);
-                byteSent = Socket.Send(bodyBytes);
-                Console.WriteLine(byteSent);
+                int byteSent = socket.Send(headBytes);
+               // Console.WriteLine(byteSent);
+                
+                byteSent = socket.Send(bodyBytes);
+                //Console.WriteLine(byteSent);
             }
             catch (SocketException se)
             {
@@ -96,22 +101,16 @@ namespace Chatting
         {
             try
             {
-                Message m = new Message();
-
-                byte[] HeadBytes = new byte[6];
-                int byteRecv = Socket.Receive(HeadBytes);
+                byte[] HeadBytes = new byte[8];
+                int byteRecv = socket.Receive(HeadBytes);
 
                 Header RecvHeader = new Header();
-                m.ByteArrayToStruct(HeadBytes, ref RecvHeader);
-                if (type != RecvHeader.type)
-                {
-                    return null;
-                }
+                RecvHeader = (Header)m.ByteToStructure(HeadBytes, typeof(Header));
 
                 byte[] BodyBytes = new byte[RecvHeader.length];
-                byteRecv = Socket.Receive(BodyBytes);
+                byteRecv = socket.Receive(BodyBytes);
 
-                string s = Encoding.UTF8.GetString(BodyBytes);
+                string s = m.ByteToString(BodyBytes);
                 return s;
             }
             catch (SocketException se)
@@ -126,7 +125,7 @@ namespace Chatting
         }
         public void SocketClose()
         {
-            Socket.Close();
+            socket.Close();
         }
 
         //Retrun Random IP in Server List 

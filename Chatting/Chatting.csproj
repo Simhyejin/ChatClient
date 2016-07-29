@@ -47,11 +47,9 @@
     <Compile Include="Chat.cs" />
     <Compile Include="Client.cs" />
     <Compile Include="Lobby.cs" />
-    <Compile Include="Login.cs" />
     <Compile Include="Message.cs" />
     <Compile Include="Run.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="SignIn.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">
