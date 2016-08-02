@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 
 
-namespace Chatting
+namespace Chat_Cleint
 {
     struct User
     {
@@ -28,9 +28,9 @@ namespace Chatting
         User user;
         Message m = new Message();
 
-        public Chat(int port)
+        public Chat(IPAddress ip, int port)
         {
-            client = new Client(port);
+            client = new Client(ip,port);
             Main();
            
         }
@@ -64,7 +64,6 @@ namespace Chatting
                         break;
 
                     case "exit":
-                        client.SocketClose();
                         break;
 
                     default:

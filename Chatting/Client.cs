@@ -6,17 +6,21 @@ using System.Configuration;
 
 namespace Chatting
 {
+   
     public class Client
     {
         Message m = new Message();
+
         IPEndPoint server;
         Socket socket;
         IPAddress ip;
-        int port;                                                                    
+        int port;
+
         public Client(int port)
         {
             this.port = port;
             ip = GetServerIP();
+            //ip = IPAddress.Parse("127.0.0.1");
             ServerEP(ip, this.port);
             Connection();
         }
@@ -51,8 +55,7 @@ namespace Chatting
             }
             catch (SocketException se)
             {
-                socket.Close();
-                //Console.WriteLine("SocketException : {0}", se.ToString());
+                Console.WriteLine("SocketException : {0}", se.ToString());
                 Console.Write("Connecting Server  ");
                 
                 IPAddress ip = GetServerIP();
@@ -79,6 +82,7 @@ namespace Chatting
                 byte[] bodyBytes = bytes;
 
                 Header head = new Header(type,MessageState.REQUEST,bodyBytes.Length);
+                //Console.WriteLine(bodyBytes.Length);
                 byte[] headBytes = m.StructureToByte(head);
 
                 int byteSent = socket.Send(headBytes);
@@ -97,21 +101,38 @@ namespace Chatting
             }
         }
 
-        public string Recieve(MessageType type)
+        public object GetHeader()
         {
+            Header RecvHeader;
             try
             {
                 byte[] HeadBytes = new byte[8];
                 int byteRecv = socket.Receive(HeadBytes);
-
-                Header RecvHeader = new Header();
+                Console.WriteLine("[GetHeader][byteRecv] " + byteRecv);
                 RecvHeader = (Header)m.ByteToStructure(HeadBytes, typeof(Header));
 
-                byte[] BodyBytes = new byte[RecvHeader.length];
-                byteRecv = socket.Receive(BodyBytes);
+                return RecvHeader;
 
-                string s = m.ByteToString(BodyBytes);
-                return s;
+            }
+            catch (SocketException se)
+            {
+                Console.WriteLine(se.ToString());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+            return new Header();
+
+        }
+        public byte[] Recieve(int len)
+        {
+            try
+            {
+                byte[] BodyBytes = new byte[len];
+                int byteRecv = socket.Receive(BodyBytes);
+
+                return BodyBytes;
             }
             catch (SocketException se)
             {
@@ -123,6 +144,7 @@ namespace Chatting
             }
             return null;
         }
+
         public void SocketClose()
         {
             socket.Close();
@@ -138,8 +160,27 @@ namespace Chatting
             return IPAddress.Parse(randomIP);
         }
 
+        public MessageState ResponseState()
+        {
+            try
+            {
+                byte[] HeadBytes = new byte[8];
+                int byteRecv = socket.Receive(HeadBytes);
+                Console.WriteLine("[RECV]"+byteRecv);
+                Header RecvHeader = (Header)m.ByteToStructure(HeadBytes, typeof(Header));
 
+                return RecvHeader.state;
 
-
+            }
+            catch (SocketException se)
+            {
+                Console.WriteLine(se.ToString());
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e.ToString());
+            }
+            return 0;
+        }
     }
 }
