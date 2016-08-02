@@ -12,7 +12,7 @@ namespace Chatting
         Message m = new Message();
 
         IPEndPoint server;
-        Socket socket;
+        Socket clientSocket;
         IPAddress ip;
         int port;
 
@@ -20,7 +20,7 @@ namespace Chatting
         {
             this.port = port;
             ip = GetServerIP();
-            //ip = IPAddress.Parse("127.0.0.1");
+
             ServerEP(ip, this.port);
             Connection();
         }
@@ -46,8 +46,8 @@ namespace Chatting
         {
             try
             {
-                socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
-                socket.Connect(server);
+                clientSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                clientSocket.Connect(server);
             }
             catch (ArgumentNullException ane)
             {
@@ -82,14 +82,10 @@ namespace Chatting
                 byte[] bodyBytes = bytes;
 
                 Header head = new Header(type,MessageState.REQUEST,bodyBytes.Length);
-                //Console.WriteLine(bodyBytes.Length);
                 byte[] headBytes = m.StructureToByte(head);
-
-                int byteSent = socket.Send(headBytes);
-               // Console.WriteLine(byteSent);
+                int byteSent = clientSocket.Send(headBytes);
                 
-                byteSent = socket.Send(bodyBytes);
-                //Console.WriteLine(byteSent);
+                byteSent = clientSocket.Send(bodyBytes);
             }
             catch (SocketException se)
             {
@@ -101,53 +97,40 @@ namespace Chatting
             }
         }
 
-        public object GetHeader()
+        public object Recieve(out byte[] body)
         {
-            Header RecvHeader;
-            try
+            body = null;
+            if (clientSocket.Connected)
             {
-                byte[] HeadBytes = new byte[8];
-                int byteRecv = socket.Receive(HeadBytes);
-                Console.WriteLine("[GetHeader][byteRecv] " + byteRecv);
-                RecvHeader = (Header)m.ByteToStructure(HeadBytes, typeof(Header));
+                byte[] buffer = new byte[8];
+                int readBytes = clientSocket.Receive(buffer);
+               
+                Header header = (Header)m.ByteToStructure(buffer, typeof(Header));
 
-                return RecvHeader;
+                MessageType type = header.type;
+                MessageState state = header.state;
+                int bodyLen = header.length;
+              
 
-            }
-            catch (SocketException se)
-            {
-                Console.WriteLine(se.ToString());
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-            }
-            return new Header();
+                if (bodyLen > 0)
+                {
 
-        }
-        public byte[] Recieve(int len)
-        {
-            try
-            {
-                byte[] BodyBytes = new byte[len];
-                int byteRecv = socket.Receive(BodyBytes);
+                    buffer = new byte[bodyLen];
+                    readBytes = clientSocket.Receive(buffer);
+                    body = buffer;
+                   
+                }
 
-                return BodyBytes;
+                return header;
             }
-            catch (SocketException se)
-            {
-                Console.WriteLine(se.ToString());
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-            }
+
             return null;
         }
-
+        
+       
         public void SocketClose()
         {
-            socket.Close();
+            clientSocket.Close();
         }
 
         //Retrun Random IP in Server List 
@@ -160,27 +143,5 @@ namespace Chatting
             return IPAddress.Parse(randomIP);
         }
 
-        public MessageState ResponseState()
-        {
-            try
-            {
-                byte[] HeadBytes = new byte[8];
-                int byteRecv = socket.Receive(HeadBytes);
-                Console.WriteLine("[RECV]"+byteRecv);
-                Header RecvHeader = (Header)m.ByteToStructure(HeadBytes, typeof(Header));
-
-                return RecvHeader.state;
-
-            }
-            catch (SocketException se)
-            {
-                Console.WriteLine(se.ToString());
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e.ToString());
-            }
-            return 0;
-        }
     }
 }

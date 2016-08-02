@@ -27,6 +27,7 @@ namespace Chatting
         Client client;
         User user;
         Message m = new Message();
+        List<int> RoomList;
 
         public Chat(int port)
         {
@@ -95,6 +96,8 @@ namespace Chatting
         {
             string id;
             string pw;
+
+            Console.Clear();
             Console.WriteLine("+----------------------------------------------------------------+");
             Console.WriteLine("|                            Sign up                             |");
             Console.WriteLine("+----------------------------------------------------------------+");
@@ -116,22 +119,18 @@ namespace Chatting
                 Console.WriteLine("dupBody.Length: " +dupBody.Length);
                 client.Send(MessageType.Id_Dup, dupBody);
 
-                MessageState mstate =  client.ResponseState();
-                Console.WriteLine(mstate);
-                if(mstate == MessageState.SUCCESS)
-                {
+                Header header = (Header)client.Recieve(out dupBody);
+
+                if (header.state == MessageState.SUCCESS)
                     break;
-                }
                 else
-                {
-                    Console.WriteLine("state:"+mstate);
                     Console.WriteLine("[!]Duplicated ID");
-                }
+                
             }
 
             while (true) { 
                 Console.Write("Password     : ");
-                pw = Console.ReadLine();
+                pw = ReadPassword();
                 if (pw.Length > 10 || pw.Length < 4)
                 {
                     Console.WriteLine("[!]Password lenght should be between 4 and 16");
@@ -139,7 +138,7 @@ namespace Chatting
                 }
 
                 Console.Write("Passeord again   : ");
-                string pw2 = Console.ReadLine();
+                string pw2 = ReadPassword();
 
                 if (pw != pw2)
                 {
@@ -148,12 +147,14 @@ namespace Chatting
                 }
                 break;
             }
+
             SignupRequestBody signupReqest = new SignupRequestBody(id.ToCharArray(), pw.ToCharArray(), false);
             byte[] body = m.StructureToByte(signupReqest);
             client.Send(MessageType.Signup, body);
 
-            MessageState state = client.ResponseState();
-            if (state == MessageState.SUCCESS)
+            Header h = (Header)client.Recieve(out body);
+
+            if (h.state == MessageState.SUCCESS)
             {
                 LogIn();
             }
@@ -161,15 +162,15 @@ namespace Chatting
             {
                 Console.WriteLine("[!]Fail to Sign up");
             }
-            
-
         }
 
         public void LogIn()
         {
             string id;
             string password;
-            while (true) { 
+
+            while (true) {
+                Console.Clear();
                 Console.WriteLine("+----------------------------------------------------------------+");
                 Console.WriteLine("|                            Log In                              |");
                 Console.WriteLine("+----------------------------------------------------------------+");
@@ -183,16 +184,15 @@ namespace Chatting
                 LoginRequestBody logInReqest = new LoginRequestBody(id.ToCharArray(), password.ToCharArray());
                 byte[] body = client.BodyStructToBytes(logInReqest);
                 client.Send(MessageType.Signin, body);
-                MessageState state = client.ResponseState();
 
-                if (state == MessageState.SUCCESS)
-                {
+                Header h = (Header)client.Recieve(out body);
+
+                if (h.state == MessageState.SUCCESS)
                     break;
-                }
+
                 else
-                {
                     Console.WriteLine("[!]Fail to Log in");
-                }
+               
 
             }
             user = new User(id, password);
@@ -214,37 +214,32 @@ namespace Chatting
                 {
                     if (!string.IsNullOrEmpty(password))
                     {
-                        // remove one character from the list of password characters
                         password = password.Substring(0, password.Length - 1);
-                        // get the location of the cursor
                         int pos = Console.CursorLeft;
-                        // move the cursor to the left by one character
                         Console.SetCursorPosition(pos - 1, Console.CursorTop);
-                        // replace it with space
                         Console.Write(" ");
-                        // move the cursor to the left by one character again
                         Console.SetCursorPosition(pos - 1, Console.CursorTop);
                     }
                 }
                 info = Console.ReadKey(true);
             }
-            // add a new line because user pressed enter at the end of their password
             Console.WriteLine();
             return password;
         }
     
         public void Lobby()
         {
+            Console.Clear();
             Console.WriteLine("+----------------------------------------------------------------+");
             Console.WriteLine("|                             Lobby                              |");
             Console.WriteLine("+----------------------------------------------------------------+");
-            Console.WriteLine("| 1. RoomList                                                    |");
-            Console.WriteLine("| 2. Create Room                                                 |");
-            Console.WriteLine("| 3. Enter Room                                                 |");
+            Console.WriteLine("| 1. RoomList            2. Create Room          3. Enter Room   |");
             Console.WriteLine("+----------------------------------------------------------------+");
+
             LobbyHelp();
             Console.WriteLine();
             Console.Write("> ");
+
             string menu = Console.ReadLine();
             menu = menu.ToLower().Replace(" ", "");
 
@@ -256,13 +251,13 @@ namespace Chatting
                     case "1": case "1roomlist":
                     case "roomlist": case "room": case "list":
                     case "rl": case "r": case "l":
-                        RoomRequest();
+                        ListRoom();
                         break;
                     case "2":
                         CreateRoom();
                         break;
                     case "3":
-                        CreateRoom();
+                        EnterRoom();
                         break;
 
                     case "exit":
@@ -292,17 +287,25 @@ namespace Chatting
             Console.WriteLine("[EX] 1, roomlist, room , rl, r, ...");
         }
 
-        public void RoomRequest()
+        public void ListRoom()
         {
             RoomRequestBody roomReqest = new RoomRequestBody(user.id.ToCharArray(), 0);
             byte[] body = client.BodyStructToBytes(roomReqest);
-            client.Send(MessageType.Signin, body);
-            Header h = (Header)client.GetHeader();
+            client.Send(MessageType.Room_List, body);
+            Header h = (Header)client.Recieve(out body);
 
-            if (h.state == MessageState.SUCCESS)
+            if (h.length == 0)
+                Console.WriteLine("방이 없습니다.");
+            else if (h.state == MessageState.SUCCESS)
             {
-                byte[] b = client.Recieve(h.length);
-                Console.WriteLine(b);
+
+
+                int[] arr = Array.ConvertAll(body,i=>(int)i);
+                RoomList = arr.OfType<int>().ToList();
+                foreach (int room in RoomList)
+                {
+                    Console.WriteLine("room #" + room);
+                }
             }
             else
             {
@@ -316,14 +319,14 @@ namespace Chatting
             RoomRequestBody createRoom = new RoomRequestBody(user.id.ToCharArray(), 0);
             byte[] body = client.BodyStructToBytes(createRoom);
             client.Send(MessageType.Room_Create, body);
-            Header h = (Header)client.GetHeader();
+            Header h = (Header)client.Recieve(out body);
 
             if (h.state == MessageState.SUCCESS)
             {
-                byte[] roomno = client.Recieve(h.length);
-                int no = BitConverter.ToInt32(roomno,0);
+                int no = BitConverter.ToInt32(body,0);
                 Console.WriteLine(no);
-                EnterRoom(no);
+                //JoinRoom(no);
+                Lobby();
             }
             else
             {
@@ -331,28 +334,44 @@ namespace Chatting
             }
         }
 
-        public void EnterRoom(int roomno)
+        public void EnterRoom()
         {
-            RoomRequestBody EnterRoom = new RoomRequestBody(user.id.ToCharArray(), 0);
+            while (true)
+            {
+                Console.WriteLine("Enter Room# : ");
+                string no = Console.ReadLine();
+                int room;
+                if(int.TryParse(no,out room))
+                {
+                    if (RoomList.Contains(room))
+                    {
+                        JoinRoom(room);
+                        break;
+                    }
+                }
+                Console.WriteLine("Wrong input");
+                
+            }
+        }
+
+        public void JoinRoom(int roomno)
+        {
+            RoomRequestBody EnterRoom = new RoomRequestBody(user.id.ToCharArray(), roomno);
             byte[] body = client.BodyStructToBytes(EnterRoom);
             client.Send(MessageType.Room_Join, body);
 
-            Header h = (Header)client.GetHeader();
+            Header h = (Header)client.Recieve(out body);
 
             if (h.state == MessageState.SUCCESS)
             {
                 Console.WriteLine("["+roomno+"] 번 방에 입장하셨습니다.");
+                Lobby();
             }
             else
             {
                 Console.WriteLine("[!]Fail to get Room List");
             }
 
-        }
-        public bool exit()
-        {
-            Console.WriteLine("Do you want to exit?(y/n)");
-            return true;
         }
     }
 }
