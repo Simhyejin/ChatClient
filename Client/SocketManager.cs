@@ -44,46 +44,77 @@ namespace Client
             body = null;
             if (socket.Connected)
             {
-                byte[] buffer = new byte[8];
-                int readBytes = socket.Receive(buffer);
-
-                Header header = (Header)mc.ByteToStructure(buffer, typeof(Header));
-
-                MessageType type = header.type;
-                MessageState state = header.state;
-                int bodyLen = header.length;
-
-
-                if (bodyLen > 0)
+                try
                 {
+                    byte[] buffer = new byte[8];
+                    int readBytes = socket.Receive(buffer);
 
-                    buffer = new byte[bodyLen];
-                    readBytes = socket.Receive(buffer);
-                    body = buffer;
+                    Header header = (Header)mc.ByteToStructure(buffer, typeof(Header));
 
+                    MessageType type = header.type;
+                    MessageState state = header.state;
+                    int bodyLen = header.length;
+
+                    if (bodyLen > 0)
+                    {
+                        buffer = new byte[bodyLen];
+                        readBytes = socket.Receive(buffer);
+                        body = buffer;
+                    }
+
+                    return header;
+                }catch(SocketException se)
+                {
+                    Console.Clear();
+                    int port = 0;
+                    IPAddress ip = mc.GetServerIP(out port);
+                    Connection con = new Connection(ip, port);
+                    socket = con.startConnection();
                 }
-
-                return header;
             }
 
             return null;
         }
 
 
+        public void RECV()
+        {
+            if (socket.Connected)
+            {
+                try
+                {
+                    byte[] buffer = new byte[8];
+                    int readBytes = socket.Receive(buffer);
+
+                    Header header = (Header)mc.ByteToStructure(buffer, typeof(Header));
+
+                    MessageType type = header.type;
+                    MessageState state = header.state;
+                    int bodyLen = header.length;
+
+                    if (bodyLen > 0)
+                    {
+                        buffer = new byte[bodyLen];
+                        readBytes = socket.Receive(buffer);
+                    }
+                }
+                catch (SocketException se)
+                {
+                    Console.Clear();
+                    int port = 0;
+                    IPAddress ip = mc.GetServerIP(out port);
+                    Connection con = new Connection(ip, port);
+                    socket = con.startConnection();
+                }
+            }
+        }
+
         public void SocketClose()
         {
             socket.Close();
         }
 
-        //Retrun Random IP in Server List 
-        public IPAddress GetServerIP()
-        {
-            Random r = new Random();
-            int rand = r.Next(1, 4);
-            string randomIP = ConfigurationManager.AppSettings[rand];
-
-            return IPAddress.Parse(randomIP);
-        }
+        
 
     }
 

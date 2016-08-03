@@ -4,9 +4,9 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Chatting
+namespace Client
 {
-    class Class1
+    class HeartBeat
     {
     }
 }

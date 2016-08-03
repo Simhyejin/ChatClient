@@ -4,9 +4,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Chatting
+namespace Dummy
 {
-    class Lobby
+    struct LoginResponseBody
     {
+        // none 
     }
 }

@@ -35,72 +35,76 @@ namespace Client
         {
             string id;
             string pw;
+            bool flag = true;
 
-            Console.Clear();
-            Console.WriteLine("+----------------------------------------------------------------+");
-            Console.WriteLine("|                            Sign up                             |");
-            Console.WriteLine("+----------------------------------------------------------------+");
+            while (flag) {
+                Console.Clear();
+                Console.WriteLine("+----------------------------------------------------------------+");
+                Console.WriteLine("|                            Sign up                             |");
+                Console.WriteLine("+----------------------------------------------------------------+");
 
-            while (true)
-            {
-
-                Console.Write("ID       : ");
-                id = Console.ReadLine();
-
-                if (id.Length > 10 || id.Length < 3)
+                while (true)
                 {
-                    Console.WriteLine("[!]ID lenght should be between 3 and 12");
-                    continue;
+
+                    Console.Write("ID       : ");
+                    id = Console.ReadLine();
+                    
+                    if (id.Length > 10 || id.Length < 3)
+                    {
+                        Console.WriteLine("[!]ID lenght should be between 3 and 12");
+                        continue;
+                    }
+
+                    LoginRequestBody dupReqest = new LoginRequestBody(id.ToCharArray(), "-".ToCharArray());
+                    byte[] dupBody = mc.StructureToByte(dupReqest);
+                    Console.WriteLine("dupBody.Length: " + dupBody.Length);
+                    sm.Send(MessageType.Id_Dup, dupBody);
+
+                    Header header = (Header)sm.Recieve(out dupBody);
+
+                    if (header.state == MessageState.SUCCESS)
+                        break;
+                    else
+                        Console.WriteLine("[!]Duplicated ID");
+
                 }
 
-                LoginRequestBody dupReqest = new LoginRequestBody(id.ToCharArray(), "-".ToCharArray());
-                byte[] dupBody = mc.StructureToByte(dupReqest);
-                Console.WriteLine("dupBody.Length: " + dupBody.Length);
-                sm.Send(MessageType.Id_Dup, dupBody);
+                while (true)
+                {
+                    Console.Write("Password     : ");
+                    pw = mc.ReadPassword();
+                    if (pw.Length > 10 || pw.Length < 4)
+                    {
+                        Console.WriteLine("[!]Password lenght should be between 4 and 16");
+                        continue;
+                    }
 
-                Header header = (Header)sm.Recieve(out dupBody);
+                    Console.Write("Passeord again   : ");
+                    string pw2 = mc.ReadPassword();
 
-                if (header.state == MessageState.SUCCESS)
+                    if (pw != pw2)
+                    {
+                        Console.WriteLine("[!] Passwords must match");
+                        continue;
+                    }
                     break;
+                }
+
+                SignupRequestBody signupReqest = new SignupRequestBody(id.ToCharArray(), pw.ToCharArray(), false);
+                byte[] body = mc.StructureToByte(signupReqest);
+                sm.Send(MessageType.Signup, body);
+
+                Header h = (Header)sm.Recieve(out body);
+
+                if (h.state == MessageState.SUCCESS)
+                {
+                    flag = false;
+                }
                 else
-                    Console.WriteLine("[!]Duplicated ID");
-
-            }
-
-            while (true)
-            {
-                Console.Write("Password     : ");
-                pw = mc.ReadPassword();
-                if (pw.Length > 10 || pw.Length < 4)
                 {
-                    Console.WriteLine("[!]Password lenght should be between 4 and 16");
-                    continue;
+                    Console.WriteLine("[!]Fail to Sign up");
                 }
-
-                Console.Write("Passeord again   : ");
-                string pw2 = mc.ReadPassword();
-
-                if (pw != pw2)
-                {
-                    Console.WriteLine("[!] Passwords must match");
-                    continue;
-                }
-                break;
-            }
-
-            SignupRequestBody signupReqest = new SignupRequestBody(id.ToCharArray(), pw.ToCharArray(), false);
-            byte[] body = mc.StructureToByte(signupReqest);
-            sm.Send(MessageType.Signup, body);
-
-            Header h = (Header)sm.Recieve(out body);
-
-            if (h.state == MessageState.SUCCESS)
-            {
-                Login login = new Login(socket);
-            }
-            else
-            {
-                Console.WriteLine("[!]Fail to Sign up");
+                Console.Clear();
             }
         }
     }

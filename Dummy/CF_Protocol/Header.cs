@@ -1,6 +1,6 @@
 ﻿using System.Runtime.InteropServices;
 
-namespace Client
+namespace Dummy
 {
     [StructLayout(LayoutKind.Sequential, Pack = 2)]
     struct Header
@@ -23,7 +23,7 @@ namespace Client
         Id_Dup = 110,
         Signup = 120,
 
-        LogIn = 210,
+        Signin = 210,
         LogOut = 220,
 
         Room_Create = 310,
@@ -33,8 +33,6 @@ namespace Client
 
         Chat_MSG_From_Client = 410,
         Chat_MSG_Broadcast = 420,
-
-        Health_Check = 510
     };
 
     public enum MessageState : short

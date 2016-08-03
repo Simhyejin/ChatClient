@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Net;
+using System.Net.Sockets;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,22 +12,23 @@ namespace Client
 {
     class Run
     {
+        
         private static bool isclosing = false;
 
         public static void Main(string[] args)
         {
-            Random r = new Random();
-            int rand = r.Next(1, 4);
-            string randomIP = ConfigurationManager.AppSettings[rand];
-
-            Connection conn = new Connection(IPAddress.Parse(randomIP), 11000);
-
-            handler = new ConsoleEventDelegate(ConsoleEventCallback);
-            SetConsoleCtrlHandler(handler, true);
             SetConsoleCtrlHandler(ConsoleCtrlCheck, true);
 
+            MessageConvert mc = new MessageConvert();
+            int port = 0;
+            IPAddress ip = mc.GetServerIP(out port);
 
+            Connection con = new Connection(ip, port);
+            Socket socket = con.startConnection();
+
+            Home home = new Home(socket);
         }
+
         #region unmanaged
         // Declare the SetConsoleCtrlHandler function
         // as external and receiving a delegate.
@@ -69,6 +71,7 @@ namespace Client
                 case CtrlTypes.CTRL_CLOSE_EVENT:
                     isclosing = true;
                     Console.WriteLine("Program being closed!");
+                    Environment.Exit(0);
                     break;
 
                 case CtrlTypes.CTRL_LOGOFF_EVENT:
@@ -76,26 +79,9 @@ namespace Client
                     isclosing = true;
                     Console.WriteLine("User is logging off!");
                     break;
-
             }
             return true;
         }
 
-        static bool ConsoleEventCallback(int eventType)
-        {
-            if (eventType == 2)
-            {
-                Environment.Exit(0);
-            }
-            return false;
-        }
-        static ConsoleEventDelegate handler;   // Keeps it from getting garbage collected
-                                               // Pinvoke
-        private delegate bool ConsoleEventDelegate(int eventType);
-        [DllImport("kernel32.dll", SetLastError = true)]
-        private static extern bool SetConsoleCtrlHandler(ConsoleEventDelegate callback, bool add);
-
     }
-
-   
 }

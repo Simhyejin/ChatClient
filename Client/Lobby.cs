@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -17,59 +18,72 @@ namespace Client
         User user;
         List<int> RoomList;
 
-        public Lobby(Socket socket, User user)
+        public Lobby(Socket socket, User user, out Socket sock)
         {
             this.socket = socket;
             this.user = user;
             sm = new SocketManager(this.socket);
             StartLobby();
+            sock = this.socket;
+            
         }
 
         public void StartLobby()
         {
-            Console.Clear();
-            Console.WriteLine("+----------------------------------------------------------------+");
-            Console.WriteLine("|                             Lobby                              |");
-            Console.WriteLine("+----------------------------------------------------------------+");
-            Console.WriteLine("| 1. RoomList            2. Create Room          3. Join Room    |");
-            Console.WriteLine("+----------------------------------------------------------------+");
+            bool flag = true;
 
-            Console.WriteLine();
-            Console.Write("> ");
+            while (flag) {
+                Console.WriteLine("+----------------------------------------------------------------+");
+                Console.WriteLine("|                             Lobby                              |");
+                Console.WriteLine("+----------------------------------------------------------------+");
+                Console.WriteLine("| 1. RoomList            2. Create Room          3. Join Room    |");
+                Console.WriteLine("+----------------------------------------------------------------+");
+                Console.Write("> ");
 
-//            string menu = Console.ReadLine();
-//            menu = menu.ToLower().Replace(" ", "");
+                String menu = null;
+                KeyType result = mc.TryReadLine(out menu);
+                Console.WriteLine(result);
+                if (KeyType.Success == result)
+                {
+                    switch (menu)
+                    {
+                        case "1":
+                        case "l":
+                            ListRoom();
+                            break;
 
-            ConsoleKeyInfo key = Console.ReadKey();
+                        case "2":
+                        case "c":
+                            CreateRoom();
+                            break;
 
+                        case "3":
+                        case "j":
+                            JoinRoom();
+                            break;
 
+                        default:
+                            Console.WriteLine("[!]잘못된 입력입니다.");
+                            break;
 
-            switch (key.KeyChar)
-            {
-                //Login
-                case '1':
-                case 'l':
-                    ListRoom();
-                    break;
-
-                case '2':
-                case 'c':
-
-                    CreateRoom();
-                    break;
-
-                case '3':
-                case 'j':
-                    JoinRoom();
-                    break;
-
-                case '\b':
-                    break;
-
-                default:
-                    StartLobby();
-                    break;
-
+                    }
+                }
+                else if (result == KeyType.Exit)
+                {
+                      
+                }
+                else if (result == KeyType.GoBack)
+                {
+                    flag = false;
+                }
+                else if (result == KeyType.LogOut)
+                {
+                    flag = false;
+                    LoginRequestBody requset = new LoginRequestBody(user.id.ToCharArray(), "-".ToCharArray());
+                    byte[] body = mc.StructureToByte(user);
+                    sm.Send(MessageType.LogOut, body);
+                }
+                Console.Clear();
             }
         }
 
@@ -85,33 +99,19 @@ namespace Client
             else if (h.state == MessageState.SUCCESS)
             {
 
-                RoomList = BytesToList(body);
+                RoomList = mc.BytesToList(body);
                 foreach (int room in RoomList)
                 {
                     Console.WriteLine("room #" + room);
                 }
-                Console.ReadLine();
             }
             else
             {
                 Console.WriteLine("[!]Fail to get Room List");
-                StartLobby();
             }
         }
 
-        public List<int> BytesToList(byte[] body)
-        {
-            List<int> list = new List<int>();
-            for (int idx = 0; idx < (body.Length % 4); idx++)
-            {
-                byte[] tmpArr = new byte[4];
-                Array.Copy(body, idx * 4, tmpArr, 0, 4); // tmpArr에 byte4개 들어가있음.
-                
-                int tmp = BitConverter.ToInt32(tmpArr,0);
-                list.Add(tmp);
-            }
-            return list;
-        }
+        
 
         public void CreateRoom()
         {
@@ -123,9 +123,7 @@ namespace Client
             if (h.state == MessageState.SUCCESS)
             {
                 int no = BitConverter.ToInt32(body, 0);
-                Console.WriteLine(no);
-                //JoinRoom(no);
-                StartLobby();
+                Join(no);
             }
             else
             {
@@ -163,12 +161,22 @@ namespace Client
 
             if (h.state == MessageState.SUCCESS)
             {
-                Console.WriteLine("[" + roomno + "] 번 방에 입장하셨습니다.");
-                StartLobby();
+                Room room = new Room(socket, user, roomno);
             }
             else
             {
-                Console.WriteLine("[!]Fail to get Room List");
+                if (0 == h.length) 
+                    Console.WriteLine("[!]Fail to get Room List");
+                else
+                {
+                    JoinFailBody joinFail = (JoinFailBody)mc.ByteToStructure(body,typeof(JoinFailBody));
+                    int port = 0;
+                    IPAddress ip = mc.GetServerIP(out port);
+                    Connection con = new Connection(ip, port);
+                    socket = con.startConnection();
+                    Room room = new Room(socket, user, roomno);
+
+                }
             }
 
         }

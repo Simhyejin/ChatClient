@@ -1,4 +1,8 @@
-﻿using System;using System.Runtime.InteropServices;
+﻿using System;
+using System.Collections.Generic;
+using System.Configuration;
+using System.Net;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Client
@@ -32,6 +36,20 @@ namespace Client
             return data;
         }
 
+        public List<int> BytesToList(byte[] body)
+        {
+            List<int> list = new List<int>();
+            for (int idx = 0; idx < (body.Length % 4); idx++)
+            {
+                byte[] tmpArr = new byte[4];
+                Array.Copy(body, idx * 4, tmpArr, 0, 4); // tmpArr에 byte4개 들어가있음.
+
+                int tmp = BitConverter.ToInt32(tmpArr, 0);
+                list.Add(tmp);
+            }
+            return list;
+        }
+
         public string ByteToString(byte[] buff)
         {
             return Encoding.UTF8.GetString(buff);
@@ -42,6 +60,17 @@ namespace Client
             return Encoding.UTF8.GetBytes(str);
         }
 
+        //Retrun Random IP in Server List 
+        public IPAddress GetServerIP(out int port)
+        {
+            Random r = new Random();
+            int max = ConfigurationManager.AppSettings.Keys.Count;
+            int rand = r.Next(0, max);
+
+            string[] randomIP = ConfigurationManager.AppSettings.Keys[rand].Split(',');
+            port = int.Parse(randomIP[1]);
+            return IPAddress.Parse(randomIP[0]);
+        }
 
         public string ReadPassword()
         {
@@ -70,5 +99,53 @@ namespace Client
             Console.WriteLine();
             return password;
         }
+
+        public KeyType TryReadLine(out string result)
+        {
+            var buf = new StringBuilder();
+            for (;;)
+            {
+                //exit
+                var key = Console.ReadKey(true);
+                if (key.Key == ConsoleKey.Escape)
+                {
+                    result = "";
+                    return KeyType.Exit;
+                }
+                //go to back
+                else if(key.Key == ConsoleKey.F1)
+                {
+                    result = "";
+                    return KeyType.GoBack;
+                }
+                else if (key.Key == ConsoleKey.F2)
+                {
+                    result = "";
+                    return KeyType.LogOut;
+                }
+                else if (key.Key == ConsoleKey.Enter)
+                {
+                    result = buf.ToString();
+                    return KeyType.Success;
+                }
+                else if (key.Key == ConsoleKey.Backspace && buf.Length > 0)
+                {
+                    buf.Remove(buf.Length - 1, 1);
+                    Console.Write("\b \b");
+                }
+                else if (key.KeyChar != 0)
+                {
+                    buf.Append(key.KeyChar);
+                    Console.Write(key.KeyChar);
+                }
+            }
+        }  
     }
+    public enum KeyType : int
+    {
+        Success = 0,
+        GoBack = 10,
+        LogOut = 20,
+        Exit = 30
+    };
 }

@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,11 +27,22 @@ namespace Client
         MessageConvert mc = new MessageConvert();
         SocketManager sm;
 
-        public Login(Socket socket)
+        public Login(Socket socket, out Socket sock)
         {
             this.socket = socket;
+            sock = socket;
             sm = new SocketManager(this.socket);
-            LogIn();
+            if (socket.Connected)
+                LogIn();
+            else
+            {
+                int port = 0;
+                IPAddress ip = mc.GetServerIP(out port);
+                Connection con = new Connection(ip,port);
+                sock = con.startConnection();
+                socket = sock;
+            }
+                
         }
         
 
@@ -41,7 +53,6 @@ namespace Client
 
             while (true)
             {
-                Console.Clear();
                 Console.WriteLine("+----------------------------------------------------------------+");
                 Console.WriteLine("|                            Log In                              |");
                 Console.WriteLine("+----------------------------------------------------------------+");
@@ -54,18 +65,19 @@ namespace Client
 
                 LoginRequestBody logInReqest = new LoginRequestBody(id.ToCharArray(), password.ToCharArray());
                 byte[] body = mc.StructureToByte(logInReqest);
-                sm.Send(MessageType.Signin, body);
-
+              
+                sm.Send(MessageType.LogIn, body);
                 Header h = (Header)sm.Recieve(out body);
-
-                if (h.state == MessageState.SUCCESS)
+                if (!h.Equals(null)&&h.state == MessageState.SUCCESS)
                     break;
 
                 else
                     Console.WriteLine("[!]Fail to Log in");
+ 
             }
             user = new User(id, password);
-            Lobby lobby = new Lobby(socket,user);
+            Console.Clear();
+            Lobby lobby = new Lobby(socket, user, out socket);
         }
     }
 }

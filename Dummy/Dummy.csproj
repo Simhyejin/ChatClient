@@ -43,6 +43,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CF_Protocol\Header.cs" />
+    <Compile Include="CF_Protocol\LoginRequestBody.cs" />
+    <Compile Include="CF_Protocol\LoginResponseBody.cs" />
+    <Compile Include="CF_Protocol\RoomRequestBody.cs" />
+    <Compile Include="CF_Protocol\RoomResponseBody.cs" />
+    <Compile Include="CF_Protocol\SignupRequestBody.cs" />
+    <Compile Include="CF_Protocol\SignupResponseBody.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

@@ -45,6 +45,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="CF_Protocol\Header.cs" />
+    <Compile Include="CF_Protocol\JoinFailBody.cs" />
     <Compile Include="CF_Protocol\LoginRequestBody.cs" />
     <Compile Include="CF_Protocol\LoginResponseBody.cs" />
     <Compile Include="CF_Protocol\RoomRequestBody.cs" />
@@ -52,6 +53,7 @@
     <Compile Include="CF_Protocol\SignupRequestBody.cs" />
     <Compile Include="CF_Protocol\SignupResponseBody.cs" />
     <Compile Include="Connection.cs" />
+    <Compile Include="HeartBeat.cs" />
     <Compile Include="Home.cs" />
     <Compile Include="Lobby.cs" />
     <Compile Include="Login.cs" />

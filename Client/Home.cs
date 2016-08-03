@@ -14,6 +14,7 @@ namespace Client
 
         MessageConvert mc = new MessageConvert();
         SocketManager sm;
+        bool flag = true;
 
         public Home(Socket socket)
         {
@@ -32,39 +33,46 @@ namespace Client
         }
         public void Main()
         {
-            Console.Clear();
-            Console.WriteLine("+----------------------------------------------------------------+");
-            Console.WriteLine("|                      Welcome to 4:33 Chat                      |");
-            Console.WriteLine("|                Type \"exit\", if you want to exit                |");
-            Console.WriteLine("+----------------------------------------------------------------+");
-            Console.WriteLine("| 1. Log In                                                      |");
-            Console.WriteLine("| 2. Sign Up                                                     |");
-            Console.WriteLine("+----------------------------------------------------------------+");
+            while (flag) {
+                
+                Console.WriteLine("+----------------------------------------------------------------+");
+                Console.WriteLine("|                      Welcome to 4:33 Chat                      |");
+                Console.WriteLine("|                Type \"exit\", if you want to exit                |");
+                Console.WriteLine("+----------------------------------------------------------------+");
+                Console.WriteLine("| 1. Log In                                                      |");
+                Console.WriteLine("| 2. Sign Up                                                     |");
+                Console.WriteLine("+----------------------------------------------------------------+");
 
-           
-            Console.Write("> ");
-            ConsoleKeyInfo key = Console.ReadKey();
 
-            //string menu = Console.ReadLine();
-            //menu = menu.ToLower().Replace(" ", "");
+                Console.Write("> ");
+                String menu = null;
+                KeyType result = mc.TryReadLine(out menu);
 
-           
-            switch (key.KeyChar)
-            {
-                //Login
-                case '1': case 'l':
-                    Login log = new Login(socket);
-                    break;
+                if(KeyType.Success == result)
+                {
 
-                case '2': case 's':
-                    Signup signup = new Signup(socket);
-                    break;
-                case '\b':
-                    break;
-                default:
-                    Main();
-                    break;
-                    
+                    Console.Clear();
+                    switch (menu)
+                    {
+                        //Login
+                        case "1":
+                        case "l":
+                            Login log = new Login(socket, out socket);
+                            break;
+
+                        case "2":
+                        case "s":
+                            Signup signup = new Signup(socket);
+                            break;
+                        default:
+                            Console.WriteLine("[!]잘못된 입력입니다.");
+                            break;
+                    }
+                }
+                else if(result == KeyType.Exit)
+                { 
+                    flag = false;
+                }
             }
             
            

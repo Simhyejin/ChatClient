@@ -19,18 +19,18 @@ namespace Client
         public Connection(IPAddress ip, int port)
         {
             this.ip = ip;
-            //ip = IPAddress.Parse("127.0.0.1");
             this.port = port;
-            startConnection();
         }
 
-        public void startConnection()
+        public Socket startConnection()
         {
             do
             {
-                Console.WriteLine("Connecting...");
+                Console.WriteLine("Connecting {0} ...",ip);
+
             } while (!connect());
-            Home home = new Home(socket);
+            Console.Clear();
+            return socket;
         }
 
         public bool connect()
@@ -47,7 +47,7 @@ namespace Client
                 }
                 catch (SocketException se)
                 {
-                    Console.WriteLine(se.ToString());
+                    //Console.WriteLine(se.ToString());
                     return false;
                 }
             }
