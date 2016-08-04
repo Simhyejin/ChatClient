@@ -6,21 +6,23 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Client
+namespace Dummy
 {
     class Connection
     {
         private IPEndPoint serverEP;
         private Socket socket;
-
+        
         private IPAddress ip;
         private int port;
-        private MessageConvert mc = new MessageConvert();
+
+        private MessageConvert mc;
 
         public Connection(IPAddress ip, int port)
         {
             this.ip = ip;
             this.port = port;
+            mc = new MessageConvert();
         }
 
         public Socket startConnection()
@@ -30,7 +32,7 @@ namespace Client
             { 
                 for (int i = 0; i < 10; i++)
                 {
-                    if (!Connect())
+                    if (!connect())
                         Console.WriteLine("Connecting {0} {1}...", ip, port);
                     else
                     {
@@ -44,7 +46,7 @@ namespace Client
 
         }
 
-        private bool Connect()
+        private bool connect()
         {
             serverEP = new IPEndPoint(ip, port);
 

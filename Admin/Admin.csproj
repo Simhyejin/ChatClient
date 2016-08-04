@@ -34,6 +34,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="System" />
+    <Reference Include="System.configuration" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
@@ -43,12 +44,22 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="CB_Protocol\Header.cs" />
+    <Compile Include="CB_Protocol\LoginRequestBody.cs" />
+    <Compile Include="CB_Protocol\Ranking.cs" />
+    <Compile Include="CB_Protocol\UserStatus.cs" />
+    <Compile Include="Monitor.cs" />
+    <Compile Include="Connection.cs" />
+    <Compile Include="MessageConvert.cs" />
     <Compile Include="Run.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SocketManager.cs" />
+    <Compile Include="StateManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

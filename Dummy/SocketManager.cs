@@ -3,7 +3,7 @@ using System.Configuration;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Client
+namespace Dummy
 {
     class SocketManager
     {
@@ -40,11 +40,15 @@ namespace Client
             }
             catch (SocketException)
             {
-                reConnection();
+                Console.Clear();
+                int port = 0;
+                IPAddress ip = mc.GetServerIP(out port);
+                Connection con = new Connection(ip, port);
+                socket = con.startConnection();
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                //Console.WriteLine(e.ToString());
+                Console.WriteLine(e.ToString());
             }
         }
 
@@ -57,8 +61,7 @@ namespace Client
                 {
                     byte[] buffer = new byte[8];
                     int readBytes = socket.Receive(buffer);
-
-                    if ( 0 == readBytes)
+                    if (0 == readBytes)
                     {
                         throw new SocketException();
                     }
@@ -77,6 +80,7 @@ namespace Client
                         {
                             throw new SocketException();
                         }
+
                         body = buffer;
                     }
 
@@ -85,26 +89,14 @@ namespace Client
                 {
                     throw;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
-                    throw;
-                    //Console.WriteLine(e.ToString());
+                    Console.WriteLine(e.ToString());
                 }
             }
 
             return null;
         }
-
-
-        private void reConnection()
-        {
-            Console.Clear();
-            int port = 0;
-            IPAddress ip = mc.GetServerIP(out port);
-            Connection con = new Connection(ip, port);
-            socket = con.startConnection();
-        }
-
     }
 
 }

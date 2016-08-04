@@ -53,20 +53,18 @@
     <Compile Include="CF_Protocol\SignupRequestBody.cs" />
     <Compile Include="CF_Protocol\SignupResponseBody.cs" />
     <Compile Include="Connection.cs" />
-    <Compile Include="HeartBeat.cs" />
-    <Compile Include="Home.cs" />
-    <Compile Include="Lobby.cs" />
-    <Compile Include="Login.cs" />
     <Compile Include="MessageConvert.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="Room.cs" />
+    <Compile Include="Chat.cs" />
     <Compile Include="Run.cs" />
-    <Compile Include="Signup.cs" />
     <Compile Include="SocketManager.cs" />
+    <Compile Include="StateManager.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <Compile Include="CF_Protocol\ChatResponseBody.cs" />
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

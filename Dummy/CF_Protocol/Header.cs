@@ -23,7 +23,7 @@ namespace Dummy
         Id_Dup = 110,
         Signup = 120,
 
-        Signin = 210,
+        LogIn = 210,
         LogOut = 220,
 
         Room_Create = 310,
@@ -33,6 +33,8 @@ namespace Dummy
 
         Chat_MSG_From_Client = 410,
         Chat_MSG_Broadcast = 420,
+
+        Health_Check = 510
     };
 
     public enum MessageState : short

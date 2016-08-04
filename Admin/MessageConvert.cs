@@ -5,20 +5,10 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Client
+namespace Admin
 {
     class MessageConvert
     {
-        public enum KeyType
-        {
-            Success,
-            GoBack,
-            LogOut,
-            Exit,
-            Delete
-
-        }
-   
         public object ByteToStructure(byte[] data, Type type)
         {
             IntPtr buff = Marshal.AllocHGlobal(data.Length);
@@ -34,7 +24,61 @@ namespace Client
             return obj;
         }
 
+        public UserStatus[] ByteToUserStatus(byte[] data, Type type)
+        {
+            int objLength = data.Length / (Marshal.SizeOf(type));
+            UserStatus[] objList = new UserStatus[objLength];
 
+            for (int idx = 0; idx < objList.Length; idx++)
+            {
+                byte[] tmp = new byte[Marshal.SizeOf(type)];
+                Array.Copy(data, Marshal.SizeOf(type) * idx, tmp, 0, tmp.Length);
+
+                IntPtr buff = Marshal.AllocHGlobal(Marshal.SizeOf(type)); // 배열의 크기만큼 비관리 메모리 영역에 메모리를 할당한다.
+                Marshal.Copy(tmp, 0, buff, tmp.Length); // 배열에 저장된 데이터를 위에서 할당한 메모리 영역에 복사한다.
+
+                UserStatus obj = (UserStatus)Marshal.PtrToStructure(buff, type); // 복사된 데이터를 구조체 객체로 변환한다.
+                Marshal.FreeHGlobal(buff); // 비관리 메모리 영역에 할당했던 메모리를 해제함
+                /*
+                if (Marshal.SizeOf(obj) != data.Length)// (((PACKET_DATA)obj).TotalBytes != data.Length) // 구조체와 원래의 데이터의 크기 비교
+                {
+                    return null; // 크기가 다르면 null 리턴
+                }
+                */
+
+                objList[idx] = obj;
+            }
+
+            return objList; // 구조체 리턴
+        }// end method
+
+        public Ranking[] ByteToRanking(byte[] data, Type type)
+        {
+            int objLength = data.Length / (Marshal.SizeOf(type));
+            Ranking[] objList = new Ranking[objLength];
+
+            for (int idx = 0; idx < objList.Length; idx++)
+            {
+                byte[] tmp = new byte[Marshal.SizeOf(type)];
+                Array.Copy(data, Marshal.SizeOf(type) * idx, tmp, 0, tmp.Length);
+
+                IntPtr buff = Marshal.AllocHGlobal(Marshal.SizeOf(type)); // 배열의 크기만큼 비관리 메모리 영역에 메모리를 할당한다.
+                Marshal.Copy(tmp, 0, buff, tmp.Length); // 배열에 저장된 데이터를 위에서 할당한 메모리 영역에 복사한다.
+
+                Ranking obj = (Ranking)Marshal.PtrToStructure(buff, type); // 복사된 데이터를 구조체 객체로 변환한다.
+                Marshal.FreeHGlobal(buff); // 비관리 메모리 영역에 할당했던 메모리를 해제함
+                /*
+                if (Marshal.SizeOf(obj) != data.Length)// (((PACKET_DATA)obj).TotalBytes != data.Length) // 구조체와 원래의 데이터의 크기 비교
+                {
+                    return null; // 크기가 다르면 null 리턴
+                }
+                */
+
+                objList[idx] = obj;
+            }
+
+            return objList; // 구조체 리턴
+        }// end method
         public byte[] StructureToByte(object obj)
         {
             int datasize = Marshal.SizeOf(obj);
@@ -156,5 +200,13 @@ namespace Client
             }
         }  
     }
- 
+    public enum KeyType
+    {
+        Success,
+        GoBack,
+        LogOut,
+        Exit,
+        Delete
+
+    };
 }

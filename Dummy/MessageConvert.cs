@@ -5,20 +5,10 @@ using System.Net;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Client
+namespace Dummy
 {
     class MessageConvert
     {
-        public enum KeyType
-        {
-            Success,
-            GoBack,
-            LogOut,
-            Exit,
-            Delete
-
-        }
-   
         public object ByteToStructure(byte[] data, Type type)
         {
             IntPtr buff = Marshal.AllocHGlobal(data.Length);
@@ -156,5 +146,13 @@ namespace Client
             }
         }  
     }
- 
+    public enum KeyType
+    {
+        Success,
+        GoBack,
+        LogOut,
+        Exit,
+        Delete
+
+    };
 }

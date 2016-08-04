@@ -6,16 +6,17 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace Client
+namespace Admin
 {
     class Connection
     {
-        private IPEndPoint serverEP;
-        private Socket socket;
+        IPEndPoint serverEP;
+        Socket socket;
 
-        private IPAddress ip;
-        private int port;
-        private MessageConvert mc = new MessageConvert();
+        IPAddress ip;
+        int port;
+
+        MessageConvert mc = new MessageConvert();
 
         public Connection(IPAddress ip, int port)
         {
@@ -30,7 +31,7 @@ namespace Client
             { 
                 for (int i = 0; i < 10; i++)
                 {
-                    if (!Connect())
+                    if (!connect())
                         Console.WriteLine("Connecting {0} {1}...", ip, port);
                     else
                     {
@@ -39,12 +40,12 @@ namespace Client
                     }
                 }
                 Console.Clear();
-                ip = mc.GetServerIP(out port);
+                //ip = mc.GetServerIP(out port);
             }
 
         }
 
-        private bool Connect()
+        public bool connect()
         {
             serverEP = new IPEndPoint(ip, port);
 

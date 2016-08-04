@@ -7,12 +7,13 @@ using System.Text;
 using System.Threading;
 using System.Timers;
 
-namespace Client
+namespace Dummy
 {
     struct UserInfo
     {
         public string id;
         public string password;
+
     }
     class Chat
     {
@@ -23,22 +24,24 @@ namespace Client
         private MessageConvert mc = new MessageConvert();
 
         private UserInfo user;
-        private List<int> RoomList;
+        private Dummy dummy;
+        private List<int> roomList;
 
-        private State state; 
+        private State state;
         private int roomNo;
-        private int heartBeat; //HeartBeat Count
-        private bool isHeartBeat; 
+        private int heartBeat;
+        private bool isHeartBeat;
 
-        private bool toBeContinue; //State
-        private bool isLock; // thread lock
+        private bool toBeContinue;
+        private bool isLock;
 
-        public Chat(Socket socket)
+        public Chat(Socket socket, Dummy dummy)
         {
             this.socket = socket;
+            this.dummy = dummy;
             sm = new SocketManager(this.socket);
             st = new StateManager(this.socket);
-
+            
             state = State.Home;
             heartBeat = 0;
 
@@ -87,14 +90,14 @@ namespace Client
                             state = st.DupID(out isLock);
                             break;
                         case State.SignUp:
-                            st.SignUp(out isLock);
+                            st.SignUp(out isLock, dummy);
                             break;
                         case State.LogIn:
-                            user = st.LogIn(out isLock);
+                            user = st.LogIn(out isLock, dummy);
                             break;
                         case State.Lobby:
                             PrintLobby();
-                            state = st.Lobby(out isLock, out RoomList, RoomList);
+                            state = st.Lobby(out isLock, ref roomList);
                             break;
                         case State.Join_Direct:
                             RoomRequestBody EnterRoom = new RoomRequestBody(roomNo);
@@ -103,27 +106,19 @@ namespace Client
                             isLock = true;
                             break;
                         case State.Join:
-                            while (true)
-                            {
-                                Console.WriteLine();
-                                Console.Write("Enter Room# : ");
-                                string no = Console.ReadLine();
-                                
-                                if (int.TryParse(no, out roomNo))
-                                {
-                                        state = State.Join_Direct;
-                                        break;
-                                }
-                                Console.WriteLine("[!]Wrong input");
-
-                            }
+                            Console.WriteLine("Enter Room# : ");
+                            Random r = new Random();
+                            int max = roomList.Count-1;
+                            int rand = r.Next(0, max);
+                            roomNo = roomList[rand];
+                            state = State.Join_Direct;
                             break;
 
                         case State.Room:
                             state = st.Room(roomNo, out isLock);
                             break;
                         case State.Leave:
-                            state = st.LeaveRoom(roomNo, out isLock);
+                            st.LeaveRoom(roomNo, out isLock);
                             roomNo = 0;
                             break;
                         case State.Chat:
@@ -241,6 +236,7 @@ namespace Client
                 Console.WriteLine("[!]Fail to Sign up");
                 Console.WriteLine("Press any key to retry....");
                 Console.ReadKey();
+                isLock = false;
             }
 
         }
@@ -276,13 +272,10 @@ namespace Client
             }
             else
             {
-                Console.WriteLine("[!]Fail to Log in");
-                Console.WriteLine("Press any key to retry....");
-                Console.ReadKey();
+                state = State.SignUp;
                 isLock = false;
             }
         }
-
         //case MessageType.LogOut:
         private void LogOut(Header header, byte[] body)
         {
@@ -319,7 +312,6 @@ namespace Client
                 Console.ReadKey();
             }
         }
-
         //case MessageType.Room_Join:
         private void JoinRoom(Header header, byte[] body)
         {
@@ -340,9 +332,7 @@ namespace Client
             {
                 if (0 == h.length)
                 {
-                    Console.WriteLine("[!]Fail to Join Room");
-                    Console.WriteLine("Press any key to retry....");
-                    Console.ReadKey();
+                    roomList = null;
                 }
                 else
                 {
@@ -364,8 +354,14 @@ namespace Client
 
             if (h.state == MessageState.SUCCESS)
             {
-                if(state != State.Exit)
-                    state = State.Lobby;
+                if (state != State.Exit)
+                {
+                    LoginRequestBody requset = new LoginRequestBody(user.id.ToCharArray(), "-".ToCharArray());
+                    byte[] bytes = mc.StructureToByte(requset);
+                    sm.Send(MessageType.LogOut, MessageState.REQUEST, bytes);
+                    isLock = true;
+                    state = State.Exit;
+                }
                 isLock = false;
             }
             else
@@ -376,22 +372,20 @@ namespace Client
             }
 
         }
-
         //case MessageType.Room_List:
         private void ListRoom(Header header, byte[] body)
         {
-            RoomList = null;
             Header h = header;
             isLock = true;
             if (h.length == 0)
             {
-                ;
+                roomList = new List<int>();
             }
 
             else if (h.state == MessageState.SUCCESS)
             {
 
-                RoomList = mc.BytesToList(body);
+                roomList = mc.BytesToList(body);
             }
 
             isLock = false;
@@ -420,8 +414,10 @@ namespace Client
                 {
                     Console.SetCursorPosition(0, Console.CursorTop);
                     Console.Write(new String(' ', Console.BufferWidth));
+                    
                     Console.WriteLine("[{0}]", date);
-                    Console.WriteLine("[{0}]{1}",id,msg);   
+                    Console.WriteLine("[{0}]{1}",id,msg);
+                   
                 }
                 else
                 {
@@ -445,7 +441,8 @@ namespace Client
 
             if (h.state == MessageState.SUCCESS)
             {
-                ;
+                Console.WriteLine();
+                
             }
             else
             {
@@ -469,13 +466,11 @@ namespace Client
 
         private void PrintRoomList()
         {
-            if(RoomList != null)
-            {
-                foreach (int room in RoomList)
+            if(roomList!=null)
+                foreach (int room in roomList)
                 {
                     Console.WriteLine("room #" + room);
                 }
-            }
         }
 
         private void ConnectPassing(IPAddress ip, int port)

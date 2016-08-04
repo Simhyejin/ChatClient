@@ -3,18 +3,17 @@ using System.Configuration;
 using System.Net;
 using System.Net.Sockets;
 
-namespace Client
+namespace Admin
 {
     class SocketManager
     {
-        private MessageConvert mc;
-        private Socket socket;
+        MessageConvert mc = new MessageConvert();
+        Socket socket;
         
 
         public SocketManager(Socket socket)
         {
             this.socket = socket;
-            mc = new MessageConvert();
         }
         
         public void Send(MessageType type, MessageState state, byte[] bytes)
@@ -42,9 +41,9 @@ namespace Client
             {
                 reConnection();
             }
-            catch (Exception)
+            catch (Exception e)
             {
-                //Console.WriteLine(e.ToString());
+                Console.WriteLine(e.ToString());
             }
         }
 
@@ -57,30 +56,30 @@ namespace Client
                 {
                     byte[] buffer = new byte[8];
                     int readBytes = socket.Receive(buffer);
-
-                    if ( 0 == readBytes)
+                    if (0 == readBytes)
                     {
                         throw new SocketException();
                     }
-
-                    Header header = (Header)mc.ByteToStructure(buffer, typeof(Header));
-
-                    MessageType type = header.type;
-                    MessageState state = header.state;
-                    int bodyLen = header.length;
-
-                    if (bodyLen > 0)
+                    else
                     {
-                        buffer = new byte[bodyLen];
-                        readBytes = socket.Receive(buffer);
-                        if (0 == readBytes)
-                        {
-                            throw new SocketException();
-                        }
-                        body = buffer;
-                    }
+                        Header header = (Header)mc.ByteToStructure(buffer, typeof(Header));
 
-                    return header;
+                        MessageType type = header.type;
+                        MessageState state = header.state;
+                        int bodyLen = header.length;
+
+                        if (bodyLen > 0)
+                        {
+                            buffer = new byte[bodyLen];
+                            readBytes = socket.Receive(buffer);
+                            if (0 == readBytes)
+                            {
+                                throw new SocketException();
+                            }
+                            body = buffer;
+                        }
+                        return header;
+                    }
                 }catch(SocketException)
                 {
                     throw;
@@ -88,15 +87,18 @@ namespace Client
                 catch (Exception)
                 {
                     throw;
-                    //Console.WriteLine(e.ToString());
                 }
             }
 
             return null;
         }
 
+        public void SocketClose()
+        {
+            socket.Close();
+        }
 
-        private void reConnection()
+        public void reConnection()
         {
             Console.Clear();
             int port = 0;
