@@ -7,10 +7,27 @@
 ---
 ## Client : 채팅 클라이언트
 
+###
 ---
 
 ## Dummy : 더미 클라이언트
 - 정해진 프로토콜에 따라 채팅 룸까지 들어와서 무작위 개수의 현재 시간 정보를 출력하고 5~10초 사이 기다린 후 로그아웃
+
+### 실행
+0. __App.config__ 파일에서 <appSettings>에 `key =  "ip,port"`를 추가한다. (ip와 port를 ,로 구별, 띄어쓰기 없음)
+``` html 
+  <appSettings>
+    <add key="10.100.58.9,11000"/>
+    <add key="10.100.58.9,12000"/>
+    <add key="10.100.58.9,13000"/>
+    <add key="10.100.58.9,14000"/>
+  </appSettings>
+```
+0. `Run Project` > `Run.cs` > `Main.cs` >  `Process.Start()`  함수안에 `Dummy.exe` 파일 위치를 넣는다.
+``` C#
+ Process.Start("C:\\Users\\Yungyung\\Documents\\Visual Studio 2015\\Projects\\Chatting\\Dummy\\bin\\Release\\Dummy.exe","dummy"+i);
+```
+0. `Run Project`를 통해 Dummy Client 시작 가능
 
 ### 로직
  <pre>            
@@ -24,23 +41,6 @@ Login ----------------------------------> Loby ----> Room List 조회 ----------
 ... ------> 무작위 개수의 현재 시간 정보를 출력 -----> 5~10초 사이 기다린 후 -----> LogOut -------> Exit
   </pre>     
   
-### 실행
-0. __App.config__ 파일에서 <appSettings>에 `key =  "ip,port"`를 추가한다. (ip와 port를 ,로 구별, 띄어쓰기 없음)
-
-``` html 
-  <appSettings>
-    <add key="10.100.58.9,11000"/>
-    <add key="10.100.58.9,12000"/>
-    <add key="10.100.58.9,13000"/>
-    <add key="10.100.58.9,14000"/>
-  </appSettings>
-```
-0. `Run Project` > `Run.cs` > `Main.cs` >  `Process.Start()`  함수안에 `Dummy.exe` 파일 위치를 넣는다.
-``` C#
- Process.Start("C:\\Users\\Yungyung\\Documents\\Visual Studio 2015\\Projects\\Chatting\\Dummy\\bin\\Release\\Dummy.exe","dummy"+i);
-```
-
-0. `Run Project`를 통해 Dummy Client 시작 가능
 
 ---
 
