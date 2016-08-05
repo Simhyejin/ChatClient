@@ -236,12 +236,13 @@ namespace Client
         //Lobby
         public State Lobby(out bool isLock, out List<int> rl, List<int> room)
         {
-           
+            rl = room;
+            PrintLobby(room);
             Console.Write("> ");
             isLock = false;
             String menu = null;
             MessageConvert.KeyType result = mc.TryReadLine(out menu);
-            rl = room;
+            
 
             if (MessageConvert.KeyType.Success == result)
             {
@@ -292,6 +293,33 @@ namespace Client
             }
             return State.Lobby;
             
+        }
+        private void PrintLobby(List<int> list)
+        {
+            Console.Clear();
+            Console.WriteLine("+----------------------------------------------------------------+");
+            Console.WriteLine("|                             Lobby                              |");
+            Console.WriteLine("+----------------------------------------------------------------+");
+            Console.WriteLine("| 1. RoomList            2. Create Room          3. Join Room    |");
+            Console.WriteLine("+----------------------------------------------------------------+");
+            Console.WriteLine("| ESC : Exit     F1: Back      F2: LogOut      F3: Delete List   |");
+            Console.WriteLine("+----------------------------------------------------------------+");
+            PrintRoomList(list);
+        }
+
+
+        private void PrintRoomList(List<int> list)
+        {
+            if (list != null)
+            {
+                int i = 1;
+                list.Sort();
+                foreach (int room in list)
+                {
+                    Console.WriteLine("[{0,3}]room {1}", i, room);
+                    i++;
+                }
+            }
         }
         public void ListRoom()
         {
@@ -350,6 +378,7 @@ namespace Client
             return State.Room;
         }
 
+        //Chat
         public State Chatting()
         {
             String chat = null;

@@ -14,26 +14,29 @@ namespace Client
         public string id;
         public string password;
     }
+
     class Chat
     {
-        private Socket socket;
+        private Socket socket; 
 
         private SocketManager sm;
         private StateManager st;
         private MessageConvert mc = new MessageConvert();
 
-        private UserInfo user;
-        private List<int> RoomList;
+        private UserInfo user;              // Current User Info(id, password)
+        private State state;                // Current State ( Exit, Home, LogIn, DupId, SignUp, Lobby, Join, Join_Direct, Room, Leave, Chat)
 
-        private State state; 
-        private int roomNo;
+        private int roomNo;                 // Room Number
+        private List<int> RoomList;         // Room List
+        
+        private System.Timers.Timer timer;  // Health Cheak Timer
+        private int heartBeat;              // HeartBeat Count
+        private bool isHeartBeat;           // If Receive Health Check Message, True 
+                                            // Else, False
 
-        System.Timers.Timer timer;
-        private int heartBeat; //HeartBeat Count
-        private bool isHeartBeat;
 
-        private bool toBeContinue; //State
-        private bool isLockState; // thread lock
+        private bool toBeContinue;          // To keep going While Changing State thread
+        private bool isLockState;           // To lock Changing State thread
 
         public Chat(Socket socket)
         {
@@ -41,25 +44,31 @@ namespace Client
             sm = new SocketManager();
             st = new StateManager(this.socket);
 
-            state = State.Home;
-            heartBeat = 0;
+            state = State.Home;             // Init State to Home
+            heartBeat = 0;                  
 
-            isLockState = false;
-            toBeContinue = true;
+            isLockState = false;    
+            toBeContinue = true;    
 
-            Thread runState = new Thread(DoState);
-            Thread runRecv = new Thread(Receiving);
+            Thread runState = new Thread(ChangeState);  // Create thread for changing State
+            Thread runRecv = new Thread(Receiving);     // Create thread for Receiving 
             runState.Start();
             runRecv.Start();
 
-            timer = new System.Timers.Timer();
-            timer.Interval = 30 * 1000;
+            timer = new System.Timers.Timer();          // health Check timer
+            timer.Interval = 30 * 1000;                 // set health Check  Interval time
             timer.Elapsed += new ElapsedEventHandler(TimerHealthCheck);
             timer.Start();
             heartBeat = 0;
             isHeartBeat = false;
         }
-        
+
+        /// <summary>
+        /// Timer event to count Health Check Message.
+        /// If missed 3 Health Check Message, Reconnect to ont of servers.
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
         private void TimerHealthCheck(object sender, ElapsedEventArgs e)
         {
             if (!isHeartBeat && ++heartBeat > 3)
@@ -76,7 +85,10 @@ namespace Client
             isHeartBeat = false;
         }
 
-        private void DoState()
+        /// <summary>
+        /// Working function of Changing State Thread 
+        /// </summary>
+        private void ChangeState()
         {
             while (toBeContinue)
             {
@@ -84,36 +96,41 @@ namespace Client
                 {
                     switch (state)
                     {
-                        case State.Home:
+                        case State.Home: 
                             state = st.Home();
                             break;
-                        case State.DupId:
+
+                        case State.DupId:   // Check id is dupplicated
                             state = st.DupID(out isLockState);
                             break;
-                        case State.SignUp:
+
+                        case State.SignUp: // Request Signup
                             st.SignUp(out isLockState);
                             break;
-                        case State.LogIn:
+
+                        case State.LogIn:  // Request Login
                             user = st.LogIn(out isLockState, out state);
                             break;
-                        case State.Lobby:
-                            PrintLobby();
+
+                        case State.Lobby: // RoomList, Create Room, Join Room
                             state = st.Lobby(out isLockState, out RoomList, RoomList);
                             break;
-                        case State.Join_Direct:
+                            
+                        case State.Join_Direct:  // Request Join Room 
                             RoomRequestBody EnterRoom = new RoomRequestBody(roomNo);
                             byte[] body = mc.StructureToByte(EnterRoom);
                             sm.Send(MessageType.Room_Join, MessageState.REQUEST, body, ref socket);
                             isLockState = true;
                             break;
-                        case State.Join:
+
+                        case State.Join:    // Get Input room number
                             while (true)
                             {
                                 Console.WriteLine();
-                                Console.Write("Enter Room# : ");
-                                string no = Console.ReadLine();
-                                
-                                if (int.TryParse(no, out roomNo))
+                                Console.Write("Enter Room# : ");           
+                                string no = Console.ReadLine();              // Input
+
+                                if (int.TryParse(no, out roomNo))           // Check input is Number
                                 {
                                         state = State.Join_Direct;
                                         break;
@@ -123,21 +140,24 @@ namespace Client
                             }
                             break;
 
-                        case State.Room:
+                        case State.Room:   
                             state = st.Room(roomNo, out isLockState);
                             break;
-                        case State.Leave:
+
+                        case State.Leave: // Request Leave room
                             state = st.LeaveRoom(roomNo, out isLockState);
                             roomNo = 0;
                             break;
-                        case State.Chat:
+
+                        case State.Chat:  
                             state = st.Chatting();
                             break;
-                        case State.Exit:
 
+                        case State.Exit:
                             st.Exit();
                             toBeContinue = false;
                             break;
+
                         default:
                             Console.WriteLine("UnKnown State");
                             break;
@@ -147,6 +167,11 @@ namespace Client
             }
             
         }
+
+        /// <summary>
+        /// Working function of Receiving Thread.
+        /// Receive Message and process the message.
+        /// </summary>
         private void Receiving()
         {
             while (true)
@@ -168,6 +193,7 @@ namespace Client
                         case MessageType.Signup:
                             Signup(header, body);
                             break;
+
                         case MessageType.Id_Dup:
                             Id_Dup(header, body);
                             break;
@@ -175,6 +201,7 @@ namespace Client
                         case MessageType.LogIn:
                             LogIn(header, body);
                             break;
+
                         case MessageType.LogOut:
                             LogOut(header, body);
                             break;
@@ -182,12 +209,15 @@ namespace Client
                         case MessageType.Room_Create:
                             CreateRoom(header, body);
                             break;
+
                         case MessageType.Room_Join:
                             JoinRoom(header, body);
                             break;
+
                         case MessageType.Room_Leave:
                             LeaveRoom(header, body);
                             break;
+
                         case MessageType.Room_List:
                             ListRoom(header, body);
                             break;
@@ -203,7 +233,7 @@ namespace Client
                             break;
                     }
                 }
-                catch (SocketException)
+                catch (SocketException)     // Catch Socket Exception and Reconnection
                 {
                     Console.Clear();
                     int port = 0;
@@ -214,7 +244,7 @@ namespace Client
                         
                     Thread.Sleep(1000);
                 }
-                catch (Exception)
+                catch (Exception)           // Catch Unhandled Exception and Reconnection
                 {
                     lock (socket)
                     {
@@ -234,7 +264,15 @@ namespace Client
             
         }
 
+        #region
         //case MessageType.Health_Check:
+        /// <summary>
+        /// Send Response Message of Health Check.
+        /// isHeartBeat varable set true
+        /// hearBeat Count set zero
+        /// </summary>
+        /// <param name="header"></param>
+        /// <param name="body"></param>
         private void HealthCheck(Header header, byte[] body)
         {
             Header h = header;
@@ -248,8 +286,13 @@ namespace Client
             }
         }
 
-        //----------Sign Up--------------
+        
         //case MessageType.Signup:
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="header"></param>
+        /// <param name="body"></param>
         private void Signup(Header header, byte[] body)
         {
             Header h = header;
@@ -267,7 +310,13 @@ namespace Client
             }
 
         }
+        
         //case MessageType.Id_Dup:
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="header"></param>
+        /// <param name="body"></param>
         private void Id_Dup(Header header, byte[] body)
         {
             Header h = header;
@@ -288,6 +337,11 @@ namespace Client
         }
 
         //case MessageType.LogIn:
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="header"></param>
+        /// <param name="body"></param>
         private void LogIn(Header header, byte[] body)
         {
             Header h = header;
@@ -307,6 +361,11 @@ namespace Client
         }
 
         //case MessageType.LogOut:
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="header"></param>
+        /// <param name="body"></param>
         private void LogOut(Header header, byte[] body)
         {
             Header h = header;
@@ -325,6 +384,11 @@ namespace Client
         }
 
         //case MessageType.Room_Create:
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="header"></param>
+        /// <param name="body"></param>
         private void CreateRoom(Header header, byte[] body)
         {
             Header h = header;
@@ -344,6 +408,11 @@ namespace Client
         }
 
         //case MessageType.Room_Join:
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="header"></param>
+        /// <param name="body"></param>
         private void JoinRoom(Header header, byte[] body)
         {
             Header h = header;
@@ -517,32 +586,8 @@ namespace Client
             }
 
         }
+        #endregion
 
-        private void PrintLobby()
-        {
-            Console.Clear();
-            Console.WriteLine("+----------------------------------------------------------------+");
-            Console.WriteLine("|                             Lobby                              |");
-            Console.WriteLine("+----------------------------------------------------------------+");
-            Console.WriteLine("| 1. RoomList            2. Create Room          3. Join Room    |");
-            Console.WriteLine("+----------------------------------------------------------------+");
-            Console.WriteLine("| ESC : Exit     F1: Back      F2: LogOut      F3: Delete List   |");
-            Console.WriteLine("+----------------------------------------------------------------+");
-            PrintRoomList();
-        }
-
-        private void PrintRoomList()
-        {
-            if(RoomList != null)
-            {
-                int i = 1;
-                foreach (int room in RoomList)
-                {
-                    Console.WriteLine("[{0,3}]room {1}",i, room);
-                    i++;
-                }
-            }
-        }
 
         private void ReConnect(IPAddress ip, int port)
         {
