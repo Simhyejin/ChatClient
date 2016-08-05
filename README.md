@@ -1,7 +1,10 @@
 # ChatClient
 
----
+## 실행 환경
+- .NET 4.5.2 이상
 
+
+---
 ## Client : 채팅 클라이언트
 
 ---
@@ -11,20 +14,20 @@
 
 ### Protocol
  <pre>            
-              (성공)                                                 (RoomList에서 랜덤 Room No를 뽑아 입장)
-Login ----------------------------------> Loby ----> Room List 조회 ------------------------------------------> Room ------> ....
-      \                                /                            \                                        / 
-       ----> Signup -----> Login ---->                               ---------> Create Room ---------------->
+      (성공)                                                        (RoomList에서 랜덤 Room No를 뽑아 입장)
+Login ----------------------------------> Loby ----> Room List 조회 ---------------------------------> Room ------> ...
+      \                                /                            \                               / 
+       ----> Signup -----> Login ---->                               ---------> Create Room ------->
       (실패)                                                         (RoomList가 비어잇으면)      
       
       
-.... ------> 무작위 개수의 현재 시간 정보를 출력 -------> 5~10초 사이 기다린 후 -------> LogOut ----------> Exit
+... ------> 무작위 개수의 현재 시간 정보를 출력 -----> 5~10초 사이 기다린 후 -----> LogOut -------> Exit
   </pre>     
   
 ### 실행
-__App.config__ 파일에서 <appSettings>에 `key =  "ip,port"`를 추가합니다. (ip와 port를 ,로 구별, 띄어쓰기 없음)
+0. __App.config__ 파일에서 <appSettings>에 `key =  "ip,port"`를 추가한다. (ip와 port를 ,로 구별, 띄어쓰기 없음)
 
-``` config 
+``` html 
   <appSettings>
     <add key="10.100.58.9,11000"/>
     <add key="10.100.58.9,12000"/>
@@ -32,6 +35,12 @@ __App.config__ 파일에서 <appSettings>에 `key =  "ip,port"`를 추가합니�
     <add key="10.100.58.9,14000"/>
   </appSettings>
 ```
+0. `Run Project` > `Run.cs` > `Main.cs` >  `Process.Start()`  함수안에 `Dummy.exe` 파일 위치를 넣는다.
+``` C#
+ Process.Start("C:\\Users\\Yungyung\\Documents\\Visual Studio 2015\\Projects\\Chatting\\Dummy\\bin\\Release\\Dummy.exe","dummy"+i);
+```
+
+0. `Run Project`를 통해 Dummy Client 시작 가능
 
 ---
 
