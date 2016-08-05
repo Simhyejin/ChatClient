@@ -27,22 +27,24 @@ namespace Client
 
         private State state; 
         private int roomNo;
+
+        System.Timers.Timer timer;
         private int heartBeat; //HeartBeat Count
-        private bool isHeartBeat; 
+        private bool isHeartBeat;
 
         private bool toBeContinue; //State
-        private bool isLock; // thread lock
+        private bool isLockState; // thread lock
 
         public Chat(Socket socket)
         {
             this.socket = socket;
-            sm = new SocketManager(this.socket);
+            sm = new SocketManager();
             st = new StateManager(this.socket);
 
             state = State.Home;
             heartBeat = 0;
 
-            isLock = false;
+            isLockState = false;
             toBeContinue = true;
 
             Thread runState = new Thread(DoState);
@@ -50,8 +52,8 @@ namespace Client
             runState.Start();
             runRecv.Start();
 
-            System.Timers.Timer timer = new System.Timers.Timer();
-            timer.Interval = 33 * 1000;
+            timer = new System.Timers.Timer();
+            timer.Interval = 10 * 1000;
             timer.Elapsed += new ElapsedEventHandler(TimerHealthCheck);
             timer.Start();
             heartBeat = 0;
@@ -60,23 +62,25 @@ namespace Client
         
         private void TimerHealthCheck(object sender, ElapsedEventArgs e)
         {
-            if (isHeartBeat == false && ++heartBeat > 3)
+            if (!isHeartBeat && ++heartBeat > 3)
             {
-                state = State.Lobby;
+                heartBeat = 0;
                 int port = 0;
                 MessageConvert mc = new MessageConvert();
                 IPAddress ip = mc.GetServerIP(out port);
-                ConnectPassing(ip, port);
-            }
-               
+                ReConnect(ip, port);
+                state = State.Home;
+                isLockState = false;
                 
+            }
+            isHeartBeat = false;
         }
+
         private void DoState()
         {
-            
             while (toBeContinue)
             {
-                if (!isLock)
+                if (!isLockState)
                 {
                     switch (state)
                     {
@@ -84,23 +88,23 @@ namespace Client
                             state = st.Home();
                             break;
                         case State.DupId:
-                            state = st.DupID(out isLock);
+                            state = st.DupID(out isLockState);
                             break;
                         case State.SignUp:
-                            st.SignUp(out isLock);
+                            st.SignUp(out isLockState);
                             break;
                         case State.LogIn:
-                            user = st.LogIn(out isLock);
+                            user = st.LogIn(out isLockState, out state);
                             break;
                         case State.Lobby:
                             PrintLobby();
-                            state = st.Lobby(out isLock, out RoomList, RoomList);
+                            state = st.Lobby(out isLockState, out RoomList, RoomList);
                             break;
                         case State.Join_Direct:
                             RoomRequestBody EnterRoom = new RoomRequestBody(roomNo);
                             byte[] body = mc.StructureToByte(EnterRoom);
-                            sm.Send(MessageType.Room_Join, MessageState.REQUEST, body);
-                            isLock = true;
+                            sm.Send(MessageType.Room_Join, MessageState.REQUEST, body, ref socket);
+                            isLockState = true;
                             break;
                         case State.Join:
                             while (true)
@@ -120,10 +124,10 @@ namespace Client
                             break;
 
                         case State.Room:
-                            state = st.Room(roomNo, out isLock);
+                            state = st.Room(roomNo, out isLockState);
                             break;
                         case State.Leave:
-                            state = st.LeaveRoom(roomNo, out isLock);
+                            state = st.LeaveRoom(roomNo, out isLockState);
                             roomNo = 0;
                             break;
                         case State.Chat:
@@ -152,7 +156,7 @@ namespace Client
                 byte[] body = null;
                 try
                 {
-                    Header header = (Header)sm.Recieve(out body);
+                    Header header = (Header)sm.Receive(out body, ref socket);
 
                     switch (header.type)
                     {
@@ -203,13 +207,24 @@ namespace Client
                     Console.Clear();
                     int port = 0;
                     IPAddress ip = mc.GetServerIP(out port);
-                    Connection con = new Connection(ip, port);
-                    socket = con.startConnection();
+                    ReConnect(ip, port);
+                    state = State.Home;
+                    isLockState = false;
+                }
+                catch (Exception)
+                {
+                    Console.Clear();
+                    int port = 0;
+                    IPAddress ip = mc.GetServerIP(out port);
+                    ReConnect(ip, port);
+                    state = State.Home;
+                    isLockState = false;
                 }
             }
+
             socket.Shutdown(SocketShutdown.Both);
             socket.Close();
-
+            
         }
 
         //case MessageType.Health_Check:
@@ -219,7 +234,8 @@ namespace Client
 
             if (h.state == MessageState.REQUEST)
             {
-                sm.Send(MessageType.Health_Check, MessageState.SUCCESS, null);
+                timer.Interval = 33 * 1000;
+                //sm.Send(MessageType.Health_Check, MessageState.SUCCESS, null, ref socket);
                 isHeartBeat = true;
                 heartBeat = 0;
             }
@@ -234,7 +250,7 @@ namespace Client
             if (h.state == MessageState.SUCCESS)
             {
                 state = State.LogIn;
-                isLock = false;
+                isLockState = false;
             }
             else
             {
@@ -252,14 +268,14 @@ namespace Client
             if (h.state == MessageState.SUCCESS)
             {
                 state = State.SignUp;
-                isLock = false;
+                isLockState = false;
             }
             else
             {
                 Console.WriteLine("\n[!]Duplicated ID");
                 Console.WriteLine("Press any key to retry....");
                 Console.ReadKey();
-                isLock = false;
+                isLockState = false;
             }
 
         }
@@ -272,14 +288,14 @@ namespace Client
             if (!h.Equals(null) && h.state == MessageState.SUCCESS)
             {
                 state = State.Lobby;
-                isLock = false;
+                isLockState = false;
             }
             else
             {
                 Console.WriteLine("[!]Fail to Log in");
                 Console.WriteLine("Press any key to retry....");
                 Console.ReadKey();
-                isLock = false;
+                isLockState = false;
             }
         }
 
@@ -291,7 +307,7 @@ namespace Client
             if (h.state == MessageState.SUCCESS)
             {
                 state = State.Home;
-                isLock = false;
+                isLockState = false;
             }
             else
             {
@@ -310,7 +326,7 @@ namespace Client
             {
                 roomNo = BitConverter.ToInt32(body, 0);
                 state = State.Join_Direct;
-                isLock = false;
+                isLockState = false;
             }
             else
             {
@@ -328,7 +344,7 @@ namespace Client
             if (h.state == MessageState.SUCCESS)
             {
                 state = State.Chat;
-                isLock = false;
+                isLockState = false;
                 Console.Clear();
                 Console.WriteLine("+----------------------------------------------------------------+");
                 Console.WriteLine("|                           Room {0}                               |", roomNo);
@@ -336,7 +352,7 @@ namespace Client
                 Console.WriteLine("|        ESC : Exit      F1: Back                                |");
                 Console.WriteLine("+----------------------------------------------------------------+");
             }
-            else
+            else if (h.state == MessageState.FAIL)
             {
                 if (0 == h.length)
                 {
@@ -352,7 +368,31 @@ namespace Client
                     ConnectPassing(IPAddress.Parse(id), joinFail.port);
                     state = State.Join_Direct;
                 }
-                isLock = false;
+                isLockState = false;
+            }
+            else if(h.state == MessageState.REQUEST)
+            {
+                ChatResponseBody chatbody = (ChatResponseBody)mc.ByteToStructure(body, typeof(ChatResponseBody));
+                string id = new string(chatbody.id);
+                DateTime date = chatbody.date;
+                int bodyLen = chatbody.msgLen;
+
+                if(bodyLen > 0)
+                {
+                    byte[] buffer = new byte[bodyLen];
+                    int readBytes = socket.Receive(buffer);
+
+                    string msg = mc.ByteToString(buffer);
+                }
+                
+                id = id.Split('\0')[0];
+
+                
+                Console.SetCursorPosition(0, Console.CursorTop);
+                Console.Write(new String(' ', Console.BufferWidth));
+                Console.WriteLine("*****{0,30} {1,12} enter the room ****** ", date, id);
+
+
             }
 
         }
@@ -366,13 +406,34 @@ namespace Client
             {
                 if(state != State.Exit)
                     state = State.Lobby;
-                isLock = false;
+                st.ListRoom();
             }
-            else
+            else if (h.state == MessageState.FAIL)
             {   
                 Console.WriteLine("[!]Fail to leave Room");
-                Console.WriteLine("Press any key to retry....");
-                Console.ReadKey();
+            }
+            else if (h.state == MessageState.REQUEST)
+            {
+                ChatResponseBody chatbody = (ChatResponseBody)mc.ByteToStructure(body, typeof(ChatResponseBody));
+                string id = new string(chatbody.id);
+                DateTime date = chatbody.date;
+                int bodyLen = chatbody.msgLen;
+
+                if (bodyLen > 0)
+                {
+                    byte[] buffer = new byte[bodyLen];
+                    int readBytes = socket.Receive(buffer);
+
+                    string msg = mc.ByteToString(buffer);
+                }
+
+                id = id.Split('\0')[0];
+
+
+                Console.SetCursorPosition(0, Console.CursorTop);
+                Console.Write(new String(' ', Console.BufferWidth));
+                Console.WriteLine("*****{0,30} {1,12} left the room ******* ", date, id);
+
             }
 
         }
@@ -382,7 +443,7 @@ namespace Client
         {
             RoomList = null;
             Header h = header;
-            isLock = true;
+            isLockState = true;
             if (h.length == 0)
             {
                 ;
@@ -394,7 +455,7 @@ namespace Client
                 RoomList = mc.BytesToList(body);
             }
 
-            isLock = false;
+            isLockState = false;
         }
 
         //case MessageType.Chat_MSG_Broadcast:
@@ -443,11 +504,7 @@ namespace Client
         {
             Header h = header;
 
-            if (h.state == MessageState.SUCCESS)
-            {
-                ;
-            }
-            else
+            if (h.state != MessageState.SUCCESS)
             {
                 Console.WriteLine("[!]Fail to Send Message");
             }
@@ -471,27 +528,33 @@ namespace Client
         {
             if(RoomList != null)
             {
+                int i = 1;
                 foreach (int room in RoomList)
                 {
-                    Console.WriteLine("room #" + room);
+                    Console.WriteLine("[{0,3}]room {1}",i, room);
+                    i++;
                 }
             }
         }
 
-        private void ConnectPassing(IPAddress ip, int port)
+        private void ReConnect(IPAddress ip, int port)
         {
             Connection con = new Connection(ip, port);
-            Socket temp = con.startConnection();
-            socket.Close();
+            Socket temp = con.Connect();
+            //socket.Close();
             socket = temp;
+
+            sm = new SocketManager();
+            st = new StateManager(socket);
+        }
+        private void ConnectPassing(IPAddress ip, int port)
+        {
+            ReConnect(ip, port);
             LoginRequestBody logInReqest = new LoginRequestBody(user.id.ToCharArray(), user.password.ToCharArray());
             byte[] body = mc.StructureToByte(logInReqest);
 
-            sm = new SocketManager(socket);
-            st = new StateManager(socket);
-
-            sm.Send(MessageType.LogIn, MessageState.REQUEST, body);
-            Header header = (Header)sm.Recieve(out body);
+            sm.Send(MessageType.LogIn, MessageState.REQUEST, body, ref socket);
+            Header header = (Header)sm.Receive(out body, ref socket);
         }
 
 

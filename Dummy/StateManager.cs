@@ -37,14 +37,13 @@ namespace Dummy
         private SocketManager sm;
         
 
-        //Home
         public StateManager(Socket socket)
         {
             user = new UserInfo();
             this.socket = socket;
 
             mc = new MessageConvert();
-            sm = new SocketManager(this.socket);
+            sm = new SocketManager();
         }
 
         //Exit Program.
@@ -69,7 +68,6 @@ namespace Dummy
             Console.WriteLine("| 2. Sign Up                                                     |");
             Console.WriteLine("+----------------------------------------------------------------+");
 
-            
             return State.LogIn;
             
         }
@@ -82,49 +80,12 @@ namespace Dummy
             Console.WriteLine("+----------------------------------------------------------------+");
             Console.WriteLine("|                            Sign up                             |");
             Console.WriteLine("+----------------------------------------------------------------+");
-
             Console.Write("ID           : ");
 
             isLock =false;
-
-            KeyType result = mc.TryReadLine(out id);
-            if (KeyType.Success == result)
-            {
-                if (!checkStringFormat(id))
-                {
-                    Console.WriteLine("\n[!]ID Must contain English or Numbers");
-                    Console.WriteLine("Press any key to retry....");
-                    Console.ReadKey();
-                }
-                else if (id.Length > 10 || id.Length < 3)
-                {
-                    Console.WriteLine("\n[!]ID lenght should be between 3 and 12");
-                    Console.WriteLine("Press any key to retry....");
-                    Console.ReadKey();
-                }
-                else
-                {
-                    LoginRequestBody dupReqest = new LoginRequestBody(id.ToCharArray(), "-".ToCharArray());
-                    byte[] dupBody = mc.StructureToByte(dupReqest);
-                    sm.Send(MessageType.Id_Dup, MessageState.REQUEST, dupBody);
-                    isLock = true;
-                    user.id = id;
-                }
-                return State.DupId;
-
-            }
-            else if (result == KeyType.GoBack)
-            {
-                return State.Home;
-            }
-            else if (result == KeyType.Exit)
-            {
-                return State.Exit;
-            }
-            else
-            {
-                return State.DupId;
-            }
+            
+            return State.DupId;
+            
         }
         public void SignUp(out bool isLock, Dummy dummy)
         {
@@ -141,7 +102,7 @@ namespace Dummy
             
             SignupRequestBody signupReqest = new SignupRequestBody(user.id.ToCharArray(), pw.ToCharArray(), false);
             byte[] body = mc.StructureToByte(signupReqest);
-            sm.Send(MessageType.Signup, MessageState.REQUEST, body);
+            sm.Send(MessageType.Signup, MessageState.REQUEST, body, ref socket);
             isLock = true;
         }
 
@@ -162,7 +123,7 @@ namespace Dummy
             LoginRequestBody logInReqest = new LoginRequestBody(user.id.ToCharArray(), user.password.ToCharArray());
             byte[] body = mc.StructureToByte(logInReqest);
 
-            sm.Send(MessageType.LogIn, MessageState.REQUEST, body);
+            sm.Send(MessageType.LogIn, MessageState.REQUEST, body, ref socket);
             isLock = true;
             return user;
         }
@@ -195,14 +156,14 @@ namespace Dummy
         {
             RoomRequestBody roomReqest = new RoomRequestBody(0);
             byte[] body = mc.StructureToByte(roomReqest);
-            sm.Send(MessageType.Room_List, MessageState.REQUEST, body);
+            sm.Send(MessageType.Room_List, MessageState.REQUEST, body, ref socket);
         }
 
         public void CreateRoom()
         {
             RoomRequestBody createRoom = new RoomRequestBody(0);
             byte[] body = mc.StructureToByte(createRoom);
-            sm.Send(MessageType.Room_Create, MessageState.REQUEST, body);
+            sm.Send(MessageType.Room_Create, MessageState.REQUEST, body, ref socket);
            
         }
 
@@ -212,7 +173,7 @@ namespace Dummy
         {
             RoomRequestBody LeaveRoom = new RoomRequestBody(roomno);
             byte[] body = mc.StructureToByte(LeaveRoom);
-            sm.Send(MessageType.Room_Leave, MessageState.REQUEST, body);
+            sm.Send(MessageType.Room_Leave, MessageState.REQUEST, body, ref socket);
             isLock = true;
 
         }
@@ -228,19 +189,19 @@ namespace Dummy
             if (result == KeyType.Success)
             {
                 byte[] body = mc.StringToByte(chat);
-                sm.Send(MessageType.Chat_MSG_From_Client, MessageState.REQUEST, body);
+                sm.Send(MessageType.Chat_MSG_From_Client, MessageState.REQUEST, body, ref socket);
                 isLock = true;
                 return State.Chat;
             }
             else if (result == KeyType.Exit)
             {
-                sm.Send(MessageType.Room_Leave, MessageState.REQUEST, null);
+                sm.Send(MessageType.Room_Leave, MessageState.REQUEST, null, ref socket);
                 isLock = true;
                 return State.Exit;
             }
             else if (result == KeyType.GoBack)
             {
-                sm.Send(MessageType.Room_Leave, MessageState.REQUEST, null);
+                sm.Send(MessageType.Room_Leave, MessageState.REQUEST, null, ref socket);
                 isLock = true;
                 return State.Lobby;
             }
@@ -259,7 +220,7 @@ namespace Dummy
                 DateTime date = new DateTime();
                 String chat = date.ToString();
                 byte[] body = mc.StringToByte(chat);
-                sm.Send(MessageType.Chat_MSG_From_Client, MessageState.REQUEST, body);
+                sm.Send(MessageType.Chat_MSG_From_Client, MessageState.REQUEST, body, ref socket);
             }
             Thread.Sleep(rand * 1000);
 

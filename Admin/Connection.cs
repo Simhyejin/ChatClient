@@ -10,13 +10,11 @@ namespace Admin
 {
     class Connection
     {
-        IPEndPoint serverEP;
-        Socket socket;
+        private IPEndPoint serverEP;
 
-        IPAddress ip;
-        int port;
-
-        MessageConvert mc = new MessageConvert();
+        private IPAddress ip;
+        private int port;
+        private MessageConvert mc = new MessageConvert();
 
         public Connection(IPAddress ip, int port)
         {
@@ -24,50 +22,42 @@ namespace Admin
             this.port = port;
         }
 
-        public Socket startConnection()
+        public bool IsConnected(Socket socket)
         {
-            Console.WriteLine("Connecting {0} {1}...", ip, port);
-            while (true)
-            { 
-                for (int i = 0; i < 10; i++)
-                {
-                    if (!connect())
-                        Console.WriteLine("Connecting {0} {1}...", ip, port);
-                    else
-                    {
-                        Console.Clear();
-                        return socket;
-                    }
-                }
-                Console.Clear();
-                //ip = mc.GetServerIP(out port);
-            }
-
-        }
-
-        public bool connect()
-        {
-            serverEP = new IPEndPoint(ip, port);
-
             if (socket == null || !socket.Connected)
             {
+                return false;
+            }
+            return true;
+        }
+
+        public Socket Connect()
+        {
+            while (true)
+            {
+                Socket socket = null;
                 try
                 {
+                    serverEP = new IPEndPoint(ip, port);
                     socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                     socket.Connect(serverEP);
-                    
+
                     string title = "IP : " + ip + " Port : " + port;
                     Console.Title = title;
-                    return true;
+                    return socket;
                 }
                 catch (SocketException)
                 {
                     //Console.WriteLine(se.ToString());
-                    return false;
+                    continue;
+                }
+                catch (Exception e)
+                {
+                    //Console.WriteLine(e.ToString());
+                    continue;
                 }
             }
-            else
-                return false;
+
         }
 
     }

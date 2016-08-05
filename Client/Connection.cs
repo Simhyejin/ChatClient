@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace Client
@@ -11,7 +12,6 @@ namespace Client
     class Connection
     {
         private IPEndPoint serverEP;
-        private Socket socket;
 
         private IPAddress ip;
         private int port;
@@ -23,50 +23,47 @@ namespace Client
             this.port = port;
         }
 
-        public Socket startConnection()
+        public bool IsConnected(Socket socket)
         {
-            Console.WriteLine("Connecting {0} {1}...", ip, port);
-            while (true)
-            { 
-                for (int i = 0; i < 10; i++)
-                {
-                    if (!Connect())
-                        Console.WriteLine("Connecting {0} {1}...", ip, port);
-                    else
-                    {
-                        Console.Clear();
-                        return socket;
-                    }
-                }
-                Console.Clear();
-                ip = mc.GetServerIP(out port);
-            }
-
-        }
-
-        private bool Connect()
-        {
-            serverEP = new IPEndPoint(ip, port);
-
             if (socket == null || !socket.Connected)
             {
+                return false;
+            }
+            return true;
+        }
+
+        public Socket Connect()
+        {
+            while (true)
+            {
+                Socket socket = null;
+                
                 try
                 {
+                    Console.WriteLine("Connecting {0}:{1} ....",ip, port);
+                    serverEP = new IPEndPoint(ip, port);
                     socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                     socket.Connect(serverEP);
-                    
+
                     string title = "IP : " + ip + " Port : " + port;
                     Console.Title = title;
-                    return true;
+                    return socket;
                 }
                 catch (SocketException)
                 {
                     //Console.WriteLine(se.ToString());
-                    return false;
+                    ip = mc.GetServerIP(out port);
+                    continue;
                 }
+                catch (Exception e)
+                {
+                    ip = mc.GetServerIP(out port);
+                    //Console.WriteLine(e.ToString());
+                    continue;
+                }
+                
             }
-            else
-                return false;
+            
         }
 
     }

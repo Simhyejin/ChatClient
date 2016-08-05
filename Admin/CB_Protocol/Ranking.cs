@@ -10,5 +10,6 @@ namespace Admin
         [MarshalAs(UnmanagedType.ByValArray, SizeConst = 12)]
         public char[] id; // user id
         public int rank; // user's rank 
+        public int score;
     }
 }

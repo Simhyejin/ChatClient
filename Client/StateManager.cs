@@ -44,7 +44,7 @@ namespace Client
             this.socket = socket;
 
             mc = new MessageConvert();
-            sm = new SocketManager(this.socket);
+            sm = new SocketManager();
         }
 
         //Exit Program.
@@ -63,7 +63,7 @@ namespace Client
             Console.Clear();
             Console.WriteLine("+----------------------------------------------------------------+");
             Console.WriteLine("|                      Welcome to 4:33 Chat                      |");
-            Console.WriteLine("|                Type \"exit\", if you want to exit                |");
+            Console.WriteLine("|             Press \"exit\" key, if you want to exit              |");
             Console.WriteLine("+----------------------------------------------------------------+");
             Console.WriteLine("| 1. Log In                                                      |");
             Console.WriteLine("| 2. Sign Up                                                     |");
@@ -110,6 +110,8 @@ namespace Client
             Console.WriteLine("+----------------------------------------------------------------+");
             Console.WriteLine("|                            Sign up                             |");
             Console.WriteLine("+----------------------------------------------------------------+");
+            Console.WriteLine("|        ESC : Exit      F1: Back                                |");
+            Console.WriteLine("+----------------------------------------------------------------+");
 
             Console.Write("ID           : ");
 
@@ -134,7 +136,7 @@ namespace Client
                 {
                     LoginRequestBody dupReqest = new LoginRequestBody(id.ToCharArray(), "-".ToCharArray());
                     byte[] dupBody = mc.StructureToByte(dupReqest);
-                    sm.Send(MessageType.Id_Dup, MessageState.REQUEST, dupBody);
+                    sm.Send(MessageType.Id_Dup, MessageState.REQUEST, dupBody, ref socket);
                     isLock = true;
                     user.id = id;
                 }
@@ -183,31 +185,52 @@ namespace Client
             {
                 SignupRequestBody signupReqest = new SignupRequestBody(user.id.ToCharArray(), pw.ToCharArray(), false);
                 byte[] body = mc.StructureToByte(signupReqest);
-                sm.Send(MessageType.Signup, MessageState.REQUEST, body);
+                sm.Send(MessageType.Signup, MessageState.REQUEST, body, ref socket);
                 isLock = true;
             }
         }
 
         //Log in
-        public UserInfo LogIn(out bool isLock)
+        public UserInfo LogIn(out bool isLock, out State state)
         {
             Console.Clear();
             Console.WriteLine("+----------------------------------------------------------------+");
             Console.WriteLine("|                            Log In                              |");
             Console.WriteLine("+----------------------------------------------------------------+");
+            Console.WriteLine("|        ESC : Exit      F1: Back                                |");
+            Console.WriteLine("+----------------------------------------------------------------+");
 
-            Console.Write("ID       : ");
-            user.id = Console.ReadLine();
+            user.id = null;
+            state = State.LogIn;
+            isLock = false;
 
+            Console.Write("ID           : ");
+            MessageConvert.KeyType result = mc.TryReadLine(out user.id);
+
+            if (MessageConvert.KeyType.Success == result)
+            {
+                
+                
+            }
+            else if (result == MessageConvert.KeyType.GoBack)
+            {
+                state = State.Home;
+            }
+            else if (result == MessageConvert.KeyType.Exit)
+            {
+                state =  State.Exit;
+            }
+            Console.WriteLine();
             Console.Write("Password     : ");
             user.password = mc.ReadPassword();
 
             LoginRequestBody logInReqest = new LoginRequestBody(user.id.ToCharArray(), user.password.ToCharArray());
             byte[] body = mc.StructureToByte(logInReqest);
 
-            sm.Send(MessageType.LogIn, MessageState.REQUEST, body);
+            sm.Send(MessageType.LogIn, MessageState.REQUEST, body, ref socket);
             isLock = true;
             return user;
+
         }
 
         //Lobby
@@ -257,7 +280,7 @@ namespace Client
 
                 LoginRequestBody requset = new LoginRequestBody(user.id.ToCharArray(), "-".ToCharArray());
                 byte[] body = mc.StructureToByte(requset);
-                sm.Send(MessageType.LogOut, MessageState.REQUEST, body);
+                sm.Send(MessageType.LogOut, MessageState.REQUEST, body, ref socket);
                 isLock = true;
                 return State.Home;
 
@@ -274,14 +297,14 @@ namespace Client
         {
             RoomRequestBody roomReqest = new RoomRequestBody(0);
             byte[] body = mc.StructureToByte(roomReqest);
-            sm.Send(MessageType.Room_List, MessageState.REQUEST, body);
+            sm.Send(MessageType.Room_List, MessageState.REQUEST, body, ref socket);
         }
 
         public void CreateRoom()
         {
             RoomRequestBody createRoom = new RoomRequestBody(0);
             byte[] body = mc.StructureToByte(createRoom);
-            sm.Send(MessageType.Room_Create, MessageState.REQUEST, body);
+            sm.Send(MessageType.Room_Create, MessageState.REQUEST, body, ref socket);
            
         }
 
@@ -291,7 +314,7 @@ namespace Client
         {
             RoomRequestBody LeaveRoom = new RoomRequestBody(roomno);
             byte[] body = mc.StructureToByte(LeaveRoom);
-            sm.Send(MessageType.Room_Leave, MessageState.REQUEST, body);
+            sm.Send(MessageType.Room_Leave, MessageState.REQUEST, body, ref socket);
             isLock = true;
             return State.Lobby;
 
@@ -308,19 +331,19 @@ namespace Client
             if (result == MessageConvert.KeyType.Success)
             {
                 byte[] body = mc.StringToByte(chat);
-                sm.Send(MessageType.Chat_MSG_From_Client, MessageState.REQUEST, body);
+                sm.Send(MessageType.Chat_MSG_From_Client, MessageState.REQUEST, body, ref socket);
                 isLock = true;
                 return State.Chat;
             }
             else if (result == MessageConvert.KeyType.Exit)
             {
-                sm.Send(MessageType.Room_Leave, MessageState.REQUEST, null);
+                sm.Send(MessageType.Room_Leave, MessageState.REQUEST, null, ref socket);
                 isLock = true;
                 return State.Exit;
             }
             else if (result == MessageConvert.KeyType.GoBack)
             {
-                sm.Send(MessageType.Room_Leave, MessageState.REQUEST, null);
+                sm.Send(MessageType.Room_Leave, MessageState.REQUEST, null, ref socket);
                 isLock = true;
                 return State.Lobby;
             }
@@ -334,7 +357,7 @@ namespace Client
             if (MessageConvert.KeyType.Success == result)
             {
                 byte[] body = mc.StringToByte(chat);
-                sm.Send(MessageType.Chat_MSG_From_Client, MessageState.REQUEST, body);
+                sm.Send(MessageType.Chat_MSG_From_Client, MessageState.REQUEST, body, ref socket);
             }
             else if (result == MessageConvert.KeyType.Exit)
             {

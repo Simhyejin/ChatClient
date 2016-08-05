@@ -30,7 +30,7 @@ namespace Admin
             user = new UserInfo();
             this.socket = socket;
             mc = new MessageConvert();
-            sm = new SocketManager(this.socket);
+            sm = new SocketManager();
         }
 
         //Exit Program.
@@ -61,7 +61,7 @@ namespace Admin
             LoginRequestBody logInReqest = new LoginRequestBody(user.id.ToCharArray(), user.password.ToCharArray());
             byte[] body = mc.StructureToByte(logInReqest);
 
-            sm.Send(MessageType.LogIn, MessageState.REQUEST, body);
+            sm.Send(MessageType.LogIn, MessageState.REQUEST, body, ref socket);
             isLock = true;
             return user;
             
@@ -85,7 +85,7 @@ namespace Admin
             {
                 LoginRequestBody requset = new LoginRequestBody(user.id.ToCharArray(), "-".ToCharArray());
                 byte[] body = mc.StructureToByte(requset);
-                sm.Send(MessageType.LogOut, MessageState.REQUEST, body);
+                sm.Send(MessageType.LogOut, MessageState.REQUEST, body, ref socket);
                 isLock = true;
                 return State.Home;
             }

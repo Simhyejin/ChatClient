@@ -7,20 +7,18 @@ namespace Admin
 {
     class SocketManager
     {
-        MessageConvert mc = new MessageConvert();
-        Socket socket;
-        
+        private MessageConvert mc;
 
-        public SocketManager(Socket socket)
+        public SocketManager()
         {
-            this.socket = socket;
+            mc = new MessageConvert();
         }
-        
-        public void Send(MessageType type, MessageState state, byte[] bytes)
+
+        public void Send(MessageType type, MessageState state, byte[] bytes, ref Socket socket)
         {
             try
             {
-                if (bytes!=null)
+                if (bytes != null)
                 {
                     byte[] bodyBytes = bytes;
 
@@ -39,52 +37,55 @@ namespace Admin
             }
             catch (SocketException)
             {
-                reConnection();
+                ReConnection(out socket);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine(e.ToString());
+                ReConnection(out socket);
+                //Console.WriteLine(e.ToString());
             }
         }
 
-        public object Recieve(out byte[] body)
+        public object Recieve(out byte[] body, ref Socket socket)
         {
             body = null;
-            if (socket.Connected)
+            if (socket != null)
             {
                 try
                 {
                     byte[] buffer = new byte[8];
                     int readBytes = socket.Receive(buffer);
+
                     if (0 == readBytes)
                     {
                         throw new SocketException();
                     }
-                    else
+
+                    Header header = (Header)mc.ByteToStructure(buffer, typeof(Header));
+
+                    MessageType type = header.type;
+                    MessageState state = header.state;
+                    int bodyLen = header.length;
+
+                    if (bodyLen > 0)
                     {
-                        Header header = (Header)mc.ByteToStructure(buffer, typeof(Header));
-
-                        MessageType type = header.type;
-                        MessageState state = header.state;
-                        int bodyLen = header.length;
-
-                        if (bodyLen > 0)
+                        buffer = new byte[bodyLen];
+                        readBytes = socket.Receive(buffer);
+                        if (0 == readBytes)
                         {
-                            buffer = new byte[bodyLen];
-                            readBytes = socket.Receive(buffer);
-                            if (0 == readBytes)
-                            {
-                                throw new SocketException();
-                            }
-                            body = buffer;
+                            throw new SocketException();
                         }
-                        return header;
+                        body = buffer;
                     }
-                }catch(SocketException)
+
+                    return header;
+                }
+                catch (SocketException se)
                 {
+                    
                     throw;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
                     throw;
                 }
@@ -93,20 +94,14 @@ namespace Admin
             return null;
         }
 
-        public void SocketClose()
-        {
-            socket.Close();
-        }
-
-        public void reConnection()
+        public void ReConnection(out Socket socket)
         {
             Console.Clear();
             int port = 0;
             IPAddress ip = mc.GetServerIP(out port);
             Connection con = new Connection(ip, port);
-            socket = con.startConnection();
+            socket = con.Connect();
         }
-
     }
 
 }

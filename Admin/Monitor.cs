@@ -27,8 +27,8 @@ namespace Admin
         private State state;
         private System.Timers.Timer timer;
 
-        private int heartBeat;
-        private bool isHeartBeat;
+        //private int heartBeat;
+        //private bool isHeartBeat;
 
         private bool toBeContinue;
         private bool isLock;
@@ -36,11 +36,11 @@ namespace Admin
         public Monitor(Socket socket)
         {
             this.socket = socket;
-            sm = new SocketManager(this.socket);
+            sm = new SocketManager();
             st = new StateManager(this.socket);
 
             state = State.Home;
-            heartBeat = 0;
+            //heartBeat = 0;
 
             isLock = false;
             toBeContinue = true;
@@ -51,18 +51,18 @@ namespace Admin
             runRecv.Start();
 
             timer = new System.Timers.Timer();
-            timer.Interval = 5 * 1000;
+            timer.Interval = 6 * 1000;
             timer.Elapsed += new ElapsedEventHandler(RequestTimer);
-            heartBeat = 0;
-            isHeartBeat = false;
+            //heartBeat = 0;
+            //isHeartBeat = false;
         }
 
         public void RequestTimer(object sender, ElapsedEventArgs e)
         {
             Console.Clear();
-            sm.Send(MessageType.Total_Room_Count,MessageState.REQUEST, null);
-            sm.Send(MessageType.User_Status, MessageState.REQUEST, null);
-            sm.Send(MessageType.Chat_Ranking, MessageState.REQUEST, null);
+            sm.Send(MessageType.Total_Room_Count,MessageState.REQUEST, null, ref socket);
+            sm.Send(MessageType.User_Status, MessageState.REQUEST, null, ref socket);
+            sm.Send(MessageType.Chat_Ranking, MessageState.REQUEST, null, ref socket);
             Console.WriteLine("+----------------------------------------------------------------+");
             Console.WriteLine("|                    4:33 Chat Monitor system                    |");
             Console.WriteLine("|                Type \"exit\", if you want to exit                |");
@@ -82,9 +82,9 @@ namespace Admin
                             break;
 
                         case State.Monitor:
-                            sm.Send(MessageType.Total_Room_Count, MessageState.REQUEST, null);
-                            sm.Send(MessageType.User_Status, MessageState.REQUEST, null);
-                            sm.Send(MessageType.Chat_Ranking, MessageState.REQUEST, null);
+                            sm.Send(MessageType.Total_Room_Count, MessageState.REQUEST, null, ref socket);
+                            sm.Send(MessageType.User_Status, MessageState.REQUEST, null, ref socket);
+                            sm.Send(MessageType.Chat_Ranking, MessageState.REQUEST, null, ref socket);
                             timer.Start();
                             state = st.MonitorState(out isLock);
                             break;
@@ -113,7 +113,7 @@ namespace Admin
 
                 byte[] body = null;
                 try {
-                    Header header = (Header)sm.Recieve(out body);
+                    Header header = (Header)sm.Recieve(out body, ref socket);
                 
 
                     switch (header.type)
@@ -144,12 +144,12 @@ namespace Admin
                             break;
                     }
                 }
-                catch (SocketException)
+                catch (Exception)
                 {
                     IPAddress ip = IPAddress.Parse("10.100.58.3");
                     int port = 20852;
                     Connection con = new Connection(ip, port);
-                    socket = con.startConnection();
+                    socket = con.Connect();
                 }
             }
             socket.Shutdown(SocketShutdown.Both);
@@ -164,9 +164,9 @@ namespace Admin
 
             if (h.state == MessageState.REQUEST)
             {
-                sm.Send(MessageType.Health_Check, MessageState.SUCCESS, null);
-                isHeartBeat = true;
-                heartBeat = 0;
+                sm.Send(MessageType.Health_Check, MessageState.SUCCESS, null, ref socket);
+                //isHeartBeat = true;
+                //heartBeat = 0;
             }
         }
 
@@ -295,7 +295,7 @@ namespace Admin
             Console.WriteLine("==================================================================");
             Console.WriteLine("| CHAT RANKING                                                    |");
             Console.WriteLine("==================================================================");
-            Console.WriteLine("{0,-4} {1,-20} {2,-5}","[No]", "[Id]", "[Rank]");
+            Console.WriteLine("{0,-5} {1,-20} {2,-10}","[No]", "[Id]", "[Count]");
             if (len > 0)
             {
                 Ranking[] ranking = (Ranking[])mc.ByteToRanking(body, typeof(Ranking));
@@ -306,7 +306,7 @@ namespace Admin
                     i++;
                     string id = new string(rank.id);
                     id = id.Split('\0')[0];
-                    Console.WriteLine("{0,-4} {1,-20} {2,-5}", i, id, rank.rank);
+                    Console.WriteLine("{0,-5} {1,-20} {2,-10}", rank.rank, id, rank.score);
                 }
             }
             

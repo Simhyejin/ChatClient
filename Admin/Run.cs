@@ -21,8 +21,16 @@ namespace Admin
             int port = 20852;
 
             Connection con = new Connection(ip, port);
-            Socket socket = con.startConnection();
-
+            Socket socket = con.Connect();
+            while (true)
+            {
+                if (con.IsConnected(socket))
+                    break;
+                else
+                {
+                    socket = con.Connect();
+                }
+            }
             Monitor monitor = new Monitor(socket);
         }
 

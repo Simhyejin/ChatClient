@@ -25,9 +25,17 @@ namespace Dummy
             IPAddress ip = mc.GetServerIP(out port);
 
             Connection con = new Connection(ip, port);
-            Socket socket = con.startConnection();
+            Socket socket = con.Connect();
+            while (true)
+            {
+                if (con.IsConnected(socket))
+                    break;
+                else
+                {
+                    socket = con.Connect();
+                }
+            }
 
-            
             Dummy dummy = new Dummy(args[0], args[0]);
             Chat chat = new Chat(socket, dummy);
         }

@@ -22,9 +22,9 @@ namespace Client
             int port = 0;
             MessageConvert mc = new MessageConvert();
             IPAddress ip = mc.GetServerIP(out port);
-            
             Connection con = new Connection(ip, port);
-            Socket socket = con.startConnection();
+            Socket socket = con.Connect();
+            
             Chat chat = new Chat(socket);
 
         }

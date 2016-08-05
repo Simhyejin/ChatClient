@@ -2,22 +2,20 @@
 using System.Configuration;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 
 namespace Client
 {
     class SocketManager
     {
         private MessageConvert mc;
-        private Socket socket;
         
-
-        public SocketManager(Socket socket)
+        public SocketManager()
         {
-            this.socket = socket;
             mc = new MessageConvert();
         }
         
-        public void Send(MessageType type, MessageState state, byte[] bytes)
+        public void Send(MessageType type, MessageState state, byte[] bytes, ref Socket socket)
         {
             try
             {
@@ -40,19 +38,19 @@ namespace Client
             }
             catch (SocketException)
             {
-                reConnection();
+                ReConnection(out socket);
             }
             catch (Exception)
             {
-                //Console.WriteLine(e.ToString());
+                ReConnection(out socket);
             }
         }
 
-        public object Recieve(out byte[] body)
+        public object Receive(out byte[] body, ref Socket socket)
         {
             body = null;
-            if (socket.Connected)
-            {
+            if (socket != null)
+            { 
                 try
                 {
                     byte[] buffer = new byte[8];
@@ -81,30 +79,33 @@ namespace Client
                     }
 
                     return header;
-                }catch(SocketException)
+                }catch(SocketException se)
                 {
+                    Console.WriteLine(se.ToString());
+                    Console.WriteLine("");
+                    Thread.Sleep(10000);
                     throw;
                 }
-                catch (Exception)
+                catch (Exception e)
                 {
+                    Console.WriteLine(e.ToString());
+                    Thread.Sleep(5000);
                     throw;
-                    //Console.WriteLine(e.ToString());
                 }
             }
 
             return null;
         }
 
-
-        private void reConnection()
+        public void ReConnection(out Socket socket)
         {
             Console.Clear();
             int port = 0;
             IPAddress ip = mc.GetServerIP(out port);
             Connection con = new Connection(ip, port);
-            socket = con.startConnection();
+            socket = con.Connect();
         }
-
     }
+
 
 }

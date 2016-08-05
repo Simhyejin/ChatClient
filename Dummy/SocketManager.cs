@@ -8,20 +8,17 @@ namespace Dummy
     class SocketManager
     {
         private MessageConvert mc;
-        private Socket socket;
-        
 
-        public SocketManager(Socket socket)
+        public SocketManager()
         {
-            this.socket = socket;
             mc = new MessageConvert();
         }
-        
-        public void Send(MessageType type, MessageState state, byte[] bytes)
+
+        public void Send(MessageType type, MessageState state, byte[] bytes, ref Socket socket)
         {
             try
             {
-                if (bytes!=null)
+                if (bytes != null)
                 {
                     byte[] bodyBytes = bytes;
 
@@ -40,27 +37,25 @@ namespace Dummy
             }
             catch (SocketException)
             {
-                Console.Clear();
-                int port = 0;
-                IPAddress ip = mc.GetServerIP(out port);
-                Connection con = new Connection(ip, port);
-                socket = con.startConnection();
+                ReConnection(out socket);
             }
-            catch (Exception e)
+            catch (Exception)
             {
-                Console.WriteLine(e.ToString());
+                ReConnection(out socket);
+                //Console.WriteLine(e.ToString());
             }
         }
 
-        public object Recieve(out byte[] body)
+        public object Receive(out byte[] body, ref Socket socket)
         {
             body = null;
-            if (socket.Connected)
+            if (socket != null)
             {
                 try
                 {
                     byte[] buffer = new byte[8];
                     int readBytes = socket.Receive(buffer);
+
                     if (0 == readBytes)
                     {
                         throw new SocketException();
@@ -80,22 +75,32 @@ namespace Dummy
                         {
                             throw new SocketException();
                         }
-
                         body = buffer;
                     }
 
                     return header;
-                }catch(SocketException)
+                }
+                catch (SocketException se)
                 {
+                  
                     throw;
                 }
                 catch (Exception e)
                 {
-                    Console.WriteLine(e.ToString());
+                    throw;
                 }
             }
 
             return null;
+        }
+
+        public void ReConnection(out Socket socket)
+        {
+            Console.Clear();
+            int port = 0;
+            IPAddress ip = mc.GetServerIP(out port);
+            Connection con = new Connection(ip, port);
+            socket = con.Connect();
         }
     }
 
