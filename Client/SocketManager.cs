@@ -79,17 +79,12 @@ namespace Client
                     }
 
                     return header;
-                }catch(SocketException se)
+                }catch(SocketException)
                 {
-                    Console.WriteLine(se.ToString());
-                    Console.WriteLine("");
-                    Thread.Sleep(10000);
                     throw;
                 }
-                catch (Exception e)
+                catch (Exception)
                 {
-                    Console.WriteLine(e.ToString());
-                    Thread.Sleep(5000);
                     throw;
                 }
             }

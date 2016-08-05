@@ -53,7 +53,7 @@ namespace Client
             runRecv.Start();
 
             timer = new System.Timers.Timer();
-            timer.Interval = 10 * 1000;
+            timer.Interval = 30 * 1000;
             timer.Elapsed += new ElapsedEventHandler(TimerHealthCheck);
             timer.Start();
             heartBeat = 0;
@@ -157,6 +157,7 @@ namespace Client
                 try
                 {
                     Header header = (Header)sm.Receive(out body, ref socket);
+                    
 
                     switch (header.type)
                     {
@@ -210,15 +211,21 @@ namespace Client
                     ReConnect(ip, port);
                     state = State.Home;
                     isLockState = false;
+                        
+                    Thread.Sleep(1000);
                 }
                 catch (Exception)
                 {
-                    Console.Clear();
-                    int port = 0;
-                    IPAddress ip = mc.GetServerIP(out port);
-                    ReConnect(ip, port);
-                    state = State.Home;
-                    isLockState = false;
+                    lock (socket)
+                    {
+                        Console.Clear();
+                        int port = 0;
+                        IPAddress ip = mc.GetServerIP(out port);
+                        ReConnect(ip, port);
+                        state = State.Home;
+                        isLockState = false;
+                        Thread.Sleep(1000);
+                    }
                 }
             }
 
@@ -235,7 +242,7 @@ namespace Client
             if (h.state == MessageState.REQUEST)
             {
                 timer.Interval = 33 * 1000;
-                //sm.Send(MessageType.Health_Check, MessageState.SUCCESS, null, ref socket);
+                sm.Send(MessageType.Health_Check, MessageState.SUCCESS, null, ref socket);
                 isHeartBeat = true;
                 heartBeat = 0;
             }
@@ -541,10 +548,9 @@ namespace Client
         {
             Connection con = new Connection(ip, port);
             Socket temp = con.Connect();
-            //socket.Close();
+            socket.Close();
             socket = temp;
-
-            sm = new SocketManager();
+            
             st = new StateManager(socket);
         }
         private void ConnectPassing(IPAddress ip, int port)

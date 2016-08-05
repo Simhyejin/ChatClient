@@ -201,6 +201,8 @@ namespace Dummy
                     ReConnect(ip, port);
                     state = State.Home;
                     isLockState = false;
+
+                    Thread.Sleep(1000);
                 }
                 catch (Exception)
                 {
@@ -210,6 +212,8 @@ namespace Dummy
                     ReConnect(ip, port);
                     state = State.Home;
                     isLockState = false;
+
+                    Thread.Sleep(1000);
                 }
             }
             socket.Shutdown(SocketShutdown.Both);
