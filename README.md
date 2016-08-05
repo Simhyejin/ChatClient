@@ -1,4 +1,4 @@
-# ChatClient
+# Client
 
 ## 실행 환경
 - .NET 4.5.2 이상
