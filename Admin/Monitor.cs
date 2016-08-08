@@ -146,10 +146,11 @@ namespace Admin
                 }
                 catch (Exception)
                 {
-                    IPAddress ip = IPAddress.Parse("10.100.58.3");
+                    /*
+                    IPAddress ip = IPAddress.Parse(\);
                     int port = 20852;
                     Connection con = new Connection(ip, port);
-                    socket = con.Connect();
+                    socket = con.Connect();*/
                 }
             }
             socket.Shutdown(SocketShutdown.Both);

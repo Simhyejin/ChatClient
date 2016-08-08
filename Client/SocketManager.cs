@@ -14,7 +14,7 @@ namespace Client
         {
             mc = new MessageConvert();
         }
-        
+
         public void Send(MessageType type, MessageState state, byte[] bytes, ref Socket socket)
         {
             try

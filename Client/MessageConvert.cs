@@ -143,10 +143,13 @@ namespace Client
                     result = buf.ToString();
                     return KeyType.Success;
                 }
-                else if (key.Key == ConsoleKey.Backspace && buf.Length > 0)
+                else if (key.Key == ConsoleKey.Backspace)
                 {
-                    buf.Remove(buf.Length - 1, 1);
-                    Console.Write("\b \b");
+                    if (buf.Length > 0)
+                    {
+                        buf.Remove(buf.Length - 1, 1);
+                        Console.Write("\b \b");
+                    }
                 }
                 else if (key.KeyChar != 0)
                 {

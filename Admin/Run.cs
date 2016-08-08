@@ -17,21 +17,29 @@ namespace Admin
         {
             SetConsoleCtrlHandler(ConsoleCtrlCheck, true);
 
-            IPAddress ip = IPAddress.Parse("10.100.58.3");
-            int port = 20852;
-
-            Connection con = new Connection(ip, port);
-            Socket socket = con.Connect();
-            while (true)
+            IPAddress ip = IPAddress.Parse(args[0]);
+            int port = 0;
+            if(int.TryParse(args[1], out port))
             {
-                if (con.IsConnected(socket))
-                    break;
-                else
+                Connection con = new Connection(ip, port);
+                Socket socket = con.Connect();
+                while (true)
                 {
-                    socket = con.Connect();
+                    if (con.IsConnected(socket))
+                        break;
+                    else
+                    {
+                        socket = con.Connect();
+                    }
                 }
+                Monitor monitor = new Monitor(socket);
             }
-            Monitor monitor = new Monitor(socket);
+            else
+            {
+                Console.WriteLine("Wrong Input");
+                Console.WriteLine("Usage : Admin ip port");
+            }
+            
         }
 
         #region unmanaged
